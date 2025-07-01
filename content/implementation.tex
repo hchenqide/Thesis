@@ -2,4 +2,39 @@
 
 \section{Adaptation of MiniSat to IPASIR-UP}
 
+% overview
+In order to adapt MiniSat to IPASIR-UP, several steps are taken: first, adding a clause during solving is supported, then, the interaction with user propagater is inserted in the main CDCL loop, finally, 
+
+MiniSat contains \code{core} solver and \code{simp} solver. In addition to the core CDCL solving loop performed by \code{core} solver, \code{simp} solver performs subsumption and variable elimation. In this work, only the \code{core} solver is modifed.
+
+% add ExternalPropagator to Minisat::Solver class
+The IPASIR-UP interface \code{ExternalPropagator} declaration is added in the header file \code{Solver.h}, and the \code{externalPropagator} member variable is added to \code{MiniSat::Solver}, which the solver could access for interactions.
+
+% put interaction code in CDCL loop
+In each CDCL loop, after propagation and when there is no conflict, the interaction with user propagator is performed.
+
+% assignment and backtrack notification
+An index of current notified assignment on the trail is kept.
+
+% external clause addition during solving
+
+A dedicated method \code{bool add_clause_solving(vec<Lit>& clause, bool forgettable, CRef& conflict, bool& propagate)} is added in core \code{MiniSat::Solver} to support clause addition during solving. This method handles all scenarios that might happen with a new clause added during solving. The new clause might be a tautology or root-satisfied clause, in this case it will be ignored, and \code{add_clause_solving} returns false. And when the clause is not ignored, the return value is true, and still there might be consequences brought by this clause. When it is a unit, it will cause unit propagation, which sets parameter \code{propagate} true. It might also be a conflict that will be reported through parameter \code{conflict}.
+
+% external propagation and lazy explaination
+
+% check model
+
+% decision
+
 \section{Extension of cvc5 for integrating Minisat}
+
+% duplicating the interface for CaDiCaL
+
+%
+
+\section{Development Environment and Tools}
+
+% building and linking of MiniSat and cvc5
+
+% debugging and testing
+

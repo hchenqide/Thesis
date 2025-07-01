@@ -1,11 +1,75 @@
 \chapter{Background and Related Work}
 
+This chapter talks about the background of SAT and SMT solving, the IPASIR-UP interface and related works.
+
 \section{Overview of SAT Solvers}
+
+% SAT problem
+The Boolean Satisfiability Problem (SAT) is the problem of determining whether there exists an assignment of truth values to variables such that a given Boolean formula evaluates to true. It is the first problem proven to be NP-complete, making it foundational in computational complexity and automated reasoning.
+
+% SAT solver
+Despite this theoretical hardness, modern SAT solvers have become highly effective at solving many practical instances encountered in fields such as hardware verification, cryptography, and artificial intelligence by using heuristics and a variety of preprocessing and inprocessing techniques.
+
+% CNF
+In practice, the Boolean formula is normalized in Conjunctive Normal Form (CNF) as input to the SAT solvers. A CNF formula is a conjunction (AND) of clauses, where each clause is a disjunction (OR) of literals. A literal is either a Boolean variable or its negation.
+
+% CDCL
+Most SAT solvers employ the Conflict-Driven Clause Learning (CDCL) algorithm. It iteratively assigns a chosen variable, do unit propagation, detects and analyzes conflicts to learn new clauses and backtracks to a previous decision level, or decide on another variable to propagate.
+
+% incremental solving
+In many applications, SAT problems evolve over time. New clauses or variables are added, and assumptions can change. Restarting the solver from scratch for each update is inefficient. To address this, modern solvers support incremental solving, allowing them to retain learned information and state across multiple calls.
+
+% IPASIR interface
+The IPASIR interface defines a standard API for incremental SAT solving. \todo{cite} It enables external tools to add clauses and new assumptions before each solver call, and retrieve value of literals from a satisfiable solution or failed assumptions from an unsatisfiable result.
+
+% MiniSat
+MiniSat is a ``minimalistic, easy to modify, highly efficient open-source SAT solver'' \todo{cite}. It internally employes CDCL and uses 2-watching scheme, and it supports incremental solving with IPASIR interface.
+
+% other SAT solvers
+Other SAT solvers are \todo{list more}
 
 \section{Overview of SMT Solvers}
 
+% SMT problem
+Satisfiability Modulo Theories (SMT) extends the Boolean Satisfiability Problem (SAT) by adding the ability to reason over richer domains, such as integers, real numbers, arrays, bit-vectors, and uninterpreted functions. Instead of asking whether a Boolean formula is satisfiable, SMT asks whether a logical formula is satisfiable with respect to a given background theory.
+
+% SMT solver
+SMT solvers are often built on top of SAT solvers, which specializes in solving the Boolean part of the SMT problems. Modern SMT solvers rely on incremental SAT solving such as IPASIR to interact with SAT solvers, to refine a solution by adding more constraints.
+
+% cvc5
+cvc5 is \todo{introduce cvc5}
+
+% other SMT solvers
+Other SMT solvers include ``z3'' ``OpenSMT'', etc.
+
 \section{IPASIR-UP Interface}
+
+% background
+In order to reach a higher effienciency and transparency for the interaction between SMT solver and SAT solver, the IPASIR-UP Interface is introduced. The IPASIR-UP interface is an extension of IPASIR interface with user propagater. \todo{cite} It allows more control over the solving process from the user with a set of callback functions, where the solver does it basic job on propagating and inprocessing, and the user can decide the next assignment, propagate units or raise conflicts in each CDCL loop.
+
+% description of functions
+The IPASIR-UP interface contains the following callback functions:
+
+\begin{itemize}
+\item \code{notify_assignment}
+\item \code{notify_new_decision_level}
+\item \code{notify_backtrack}
+\item \code{cb_has_external_clause}
+\item \code{cb_add_external_clause_lit}
+\item \code{cb_propagate}
+\item \code{cb_add_reason_clause_lit}
+\item \code{cb_check_found_model}
+\item \code{cb_decide}
+\end{itemize}
 
 \section{Fuzzing of Sat Solvers}
 
+% fuzzers
+
+% proof formats
+
 \section{Related Work}
+
+% proposals
+
+% cvc5 with CaDiCaL
