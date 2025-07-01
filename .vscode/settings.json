@@ -22,5 +22,8 @@
         }
     ],
     "latex-workshop.formatting.latex": "latexindent",
-    "latex-workshop.formatting.latexindent.args": ["-c=./build"]
+    "latex-workshop.formatting.latexindent.args": [
+        "-c=./build"
+    ],
+    "editor.wordWrap": "on"
 }

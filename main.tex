@@ -1,5 +1,9 @@
-\documentclass[a4paper, BCOR=15mm, parskip=full]{scrbook}
+\documentclass[a4paper, BCOR=15mm, parskip=half]{scrbook}
+
 \usepackage{hyperref}
+\usepackage{listings}
+\newcommand*{\code}[1]{\space\lstinline[breaklines, basicstyle=\ttfamily]|#1|\space}
+\newcommand*{\todo}[1]{\textbf{(TODO: #1)}}
 
 
 \title{From MiniSat to MiniSatUP and its Integration with cvc5 via IPASIR-UP}
