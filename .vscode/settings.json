@@ -21,9 +21,7 @@
             ]
         }
     ],
-    "latex-workshop.formatting.latex": "latexindent",
-    "latex-workshop.formatting.latexindent.args": [
-        "-c=./build"
-    ],
-    "editor.wordWrap": "on"
+    "latex-workshop.formatting.latex": "tex-fmt",
+    "editor.wordWrap": "on",
+    "editor.tabSize": 2
 }
