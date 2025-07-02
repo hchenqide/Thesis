@@ -1,14 +1,16 @@
 \chapter{Implementation}
 
+This chapter provides a detailed account of the implementation of MiniSatUP, IPASIR-UP on MiniSat and the extension of cvc5 for intergrating with MinisatUP.
+
 \section{Adaptation of MiniSat to IPASIR-UP}
 
 % overview
-In order to adapt MiniSat to IPASIR-UP, several steps are taken: first, adding a clause during solving is supported, then, the interaction with user propagater is inserted in the main CDCL loop, finally, 
+MiniSat contains \code{core} solver and \code{simp} solver. In addition to the core CDCL solving loop performed by \code{core} solver, \code{simp} solver performs subsumption and variable elimation. In this work, only the \code{core} solver is modifed for adaption of IPASIR-UP.
 
-MiniSat contains \code{core} solver and \code{simp} solver. In addition to the core CDCL solving loop performed by \code{core} solver, \code{simp} solver performs subsumption and variable elimation. In this work, only the \code{core} solver is modifed.
+Adaptation of MiniSat to IPASIR-UP involves several steps. First, the IPASIR-UP interface is added to header and the interaction with user propagater is inserted in the solving loop. Next, adding a clause provided by external propagater during solving is implemented. Then, adding a
 
 % add ExternalPropagator to Minisat::Solver class
-The IPASIR-UP interface \code{ExternalPropagator} declaration is added in the header file \code{Solver.h}, and the \code{externalPropagator} member variable is added to \code{MiniSat::Solver}, which the solver could access for interactions.
+The \code{ExternalPropagator} declaration of the IPASIR-UP interface is added in the header file \code{Solver.h}, and the \code{external_propagator} member variable is added to \code{MiniSat::Solver}, which the solver could interact with during solving.
 
 % put interaction code in CDCL loop
 In each CDCL loop, after propagation and when there is no conflict, the interaction with user propagator is performed.
@@ -18,7 +20,46 @@ An index of current notified assignment on the trail is kept.
 
 % external clause addition during solving
 
-A dedicated method \code{bool add_clause_solving(vec<Lit>& clause, bool forgettable, CRef& conflict, bool& propagate)} is added in core \code{MiniSat::Solver} to support clause addition during solving. This method handles all scenarios that might happen with a new clause added during solving. The new clause might be a tautology or root-satisfied clause, in this case it will be ignored, and \code{add_clause_solving} returns false. And when the clause is not ignored, the return value is true, and still there might be consequences brought by this clause. When it is a unit, it will cause unit propagation, which sets parameter \code{propagate} true. It might also be a conflict that will be reported through parameter \code{conflict}.
+%% comparison with clause addition after solving
+Adding a clause during solving is more challenging than adding a clause after each solving loop. A normal incremental clause addition, as is required in IPASIR interface, only happens when the solving is finished. At this time a variable is either assigned at root-level or unassigned. The clause to be added can be directly simplified by removing false literals. And after simplification of the clause, there are only 4 cases:
+
+\begin{itemize}
+  \item The clause is skipped when it contains a true literal.
+  \item The result is set as UNSAT when the clause is empty.
+  \item The unit is propagated when the clause contains only one literal.
+  \item The clause is added to the clause set and watched by the first two literals.
+\end{itemize}
+
+But during solving, the literals in a clause can be assigned at different decision levels, and after addition of the clause, there might be multiple consequences that leads to different control flow of the current solving loop.
+
+%% invariant of 2-watching scheme
+
+
+
+%% interface description
+Method \code{bool add_clause_solving(vec<Lit>& clause, bool forgettable, CRef& conflict, bool& propagate)} is added in core \code{MiniSat::Solver}, dedicated to support clause addition during solving. This method handles all scenarios that might happen when a new clause is added during solving. These scenarios are:
+
+\begin{itemize}
+  \item The clause is skipped.
+  \item The clause is added, with the following possible consequences:
+    \begin{itemize}
+      \item No propagation or conflict analysis are needed.
+      \item A unit propagation is needed.
+      \item A backtrack and conflict analysis are needed.
+    \end{itemize}
+\end{itemize}
+
+The input parameters \code {vec<Lit>& clause} and \code{bool forgettable} give the clause and tell whether it is forgettable. A forgettable clause is indicated by the external propagator when it provides a clause.
+
+The return value \code {bool} indicates whether the clause is skipped (returning false) or added (returning true). If unit propagation is needed, the unit literal is assigned and added to trail, the output parameter \code{bool& propagate} is set true, and the program goes to the next loop for propagation. And when conflict analysis is needed, \code{CRef& conflict} ist set as the current added clause, and the program goes to \code{analyze}.
+
+%% implementation
+
+The input clause which is to be added is first
+
+The new clause might be a tautology or root-satisfied clause, in this case it will be ignored, and \code{add_clause_solving} returns false. And when the clause is not ignored, the return value is true, and still there might be consequences brought by this clause. When it is a unit, it will cause unit propagation, which sets parameter \code{propagate} true. It might also be a conflict that will be reported through parameter \code{conflict}.
+
+\todo{graph: original CDCL loop in minisat and changed loop as in project presentation}
 
 % external propagation and lazy explaination
 
@@ -28,13 +69,14 @@ A dedicated method \code{bool add_clause_solving(vec<Lit>& clause, bool forgetta
 
 \section{Extension of cvc5 for integrating Minisat}
 
-% duplicating the interface for CaDiCaL
+% duplicating the interface for cadical in cvc5
 
-%
+% adding cadical interface for minisatup
+
+% linking minisatup in cvc5
 
 \section{Development Environment and Tools}
 
 % building and linking of MiniSat and cvc5
 
 % debugging and testing
-

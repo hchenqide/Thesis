@@ -25,6 +25,12 @@ The IPASIR interface defines a standard API for incremental SAT solving. \todo{c
 % MiniSat
 MiniSat is a ``minimalistic, easy to modify, highly efficient open-source SAT solver'' \todo{cite}. It internally employes CDCL and uses 2-watching scheme, and it supports incremental solving with IPASIR interface.
 
+\code{trail} keeps the assigned literals of each decision level.
+
+% 2-waching scheme
+
+
+
 % other SAT solvers
 Other SAT solvers are \todo{list more}
 
@@ -45,21 +51,36 @@ Other SMT solvers include ``z3'' ``OpenSMT'', etc.
 \section{IPASIR-UP Interface}
 
 % background
-In order to reach a higher effienciency and transparency for the interaction between SMT solver and SAT solver, the IPASIR-UP Interface is introduced. The IPASIR-UP interface is an extension of IPASIR interface with user propagater. \todo{cite} It allows more control over the solving process from the user with a set of callback functions, where the solver does it basic job on propagating and inprocessing, and the user can decide the next assignment, propagate units or raise conflicts in each CDCL loop.
+In order to achieve a more fine-grained interaction between SMT solver and SAT solver, the IPASIR-UP interface is introduced \cite{fazekas_et_al:LIPIcs.SAT.2023.8}. The IPASIR-UP interface is an extension of IPASIR interface with user propagater. It allows more control over the solving process from the user with a set of callback functions, where the solver does it basic job on propagating and inprocessing, and the user can decide the next assignment, propagate units or raise conflicts in each CDCL loop.
 
 % description of functions
-The IPASIR-UP interface contains the following callback functions:
+The IPASIR-UP interface contains multiple callback functions, which can be grouped in the following way:
 
 \begin{itemize}
-\item \code{notify_assignment}
-\item \code{notify_new_decision_level}
-\item \code{notify_backtrack}
-\item \code{cb_has_external_clause}
-\item \code{cb_add_external_clause_lit}
-\item \code{cb_propagate}
-\item \code{cb_add_reason_clause_lit}
-\item \code{cb_check_found_model}
-\item \code{cb_decide}
+  \item Notification functions. Notify assignments, new decision levels and backtracks:
+    \begin{itemize}
+      \item \code{notify_assignment}
+      \item \code{notify_new_decision_level}
+      \item \code{notify_backtrack}
+    \end{itemize}
+  \item Get an external clause
+    \begin{itemize}
+      \item \code{cb_has_external_clause}
+      \item \code{cb_add_external_clause_lit}
+    \end{itemize}
+  \item Get an externally propagated unit and lazily add its reason clause
+    \begin{itemize}
+      \item \code{cb_propagate}
+      \item \code{cb_add_reason_clause_lit}
+    \end{itemize}
+  \item Get the next decision
+    \begin{itemize}
+      \item \code{cb_decide}
+    \end{itemize}
+  \item Check model when every variable is assigned
+    \begin{itemize}
+      \item \code{cb_check_found_model}
+    \end{itemize}
 \end{itemize}
 
 \section{Fuzzing of Sat Solvers}
