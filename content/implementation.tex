@@ -1,30 +1,33 @@
 \chapter{Implementation}
 
-This chapter provides a detailed account of the implementation of MiniSatUP, IPASIR-UP on MiniSat and the extension of cvc5 for intergrating with MinisatUP.
+This chapter provides a detailed account of the implementation of MiniSatUP (MiniSat with IPASIR-UP) and the extension of cvc5 for intergrating with MinisatUP.
 
 \section{Adaptation of MiniSat to IPASIR-UP}
 
-% overview
-MiniSat contains \code{core} solver and \code{simp} solver. In addition to the core CDCL solving loop performed by \code{core} solver, \code{simp} solver performs subsumption and variable elimation. In this work, only the \code{core} solver is modifed for adaption of IPASIR-UP.
+% overview and principle
+MiniSat contains \code{core} solver and \code{simp} solver. In addition to the core CDCL solving loop performed by \code{core} solver, \code{simp} solver performs subsumption and variable elimation. In this work, only the \code{core} solver is modifed. And the modification is made as minimum as possible, without changing the major control flow of the original code.
 
-Adaptation of MiniSat to IPASIR-UP involves several steps. First, the IPASIR-UP interface is added to header and the interaction with user propagater is inserted in the solving loop. Next, adding a clause provided by external propagater during solving is implemented. Then, adding a
+\todo{question: why not the simp solver, which does variable elimation, as cvc5 can remove observed variables, otherwise there will redundant variables, does cadical do this}
 
-% add ExternalPropagator to Minisat::Solver class
-The \code{ExternalPropagator} declaration of the IPASIR-UP interface is added in the header file \code{Solver.h}, and the \code{external_propagator} member variable is added to \code{MiniSat::Solver}, which the solver could interact with during solving.
+Adaptation of MiniSat to IPASIR-UP involves several steps. First, the IPASIR-UP interface is added to the header file and the interaction with external propagator is inserted in the solving loop. Then, adding a clause provided by external propagator during solving is implemented. Finally, adding an externally propagated unit and lazy explaination of the unit is implemented.
 
-% put interaction code in CDCL loop
-In each CDCL loop, after propagation and when there is no conflict, the interaction with user propagator is performed.
+% adding ExternalPropagator interface
 
-% assignment and backtrack notification
-An index of current notified assignment on the trail is kept.
+The \code{ExternalPropagator} class declaration of the IPASIR-UP interface is added in the header file \code{Solver.h}, and the \code{external_propagator} member variable is added to \code{MiniSat::Solver}, which is set by \code{connect_external_propagator} for the solver to interact with during solving.
+
+% interaction within CDCL loop
+%% assignment and backtrack notification
+In each CDCL loop after propagation, when there is no conflict, the interaction with external propagator is performed. First, the external propagator is notified of the current assignments and possible backtracks. An index on the trail up to which the assignments are notified is maintained for this purpose. Then the external propagator is requested of possible propagations and external clauses, whose details will be explained later.
+
+%% decision and check model
+When there's no external propagations or clauses, or there's no extra consequence of adding them, the external propagator is requested of the next decision literal, if there are still unassigned variables, and the new decision is taken and notified to external propagator, going to the next propagation loop. Or the external propagator is requested to do a full model check before returning SAT, if every variable is assigned. And when the model check fails, the loop is continued and external propagator will provide new propagations or clauses to be taken into account.
 
 % external clause addition during solving
-
 %% comparison with clause addition after solving
 Adding a clause during solving is more challenging than adding a clause after each solving loop. A normal incremental clause addition, as is required in IPASIR interface, only happens when the solving is finished. At this time a variable is either assigned at root-level or unassigned. The clause to be added can be directly simplified by removing false literals. And after simplification of the clause, there are only 4 cases:
 
 \begin{itemize}
-  \item The clause is skipped when it contains a true literal.
+  \item The clause is skipped when it contains a true literal or is tautology.
   \item The result is set as UNSAT when the clause is empty.
   \item The unit is propagated when the clause contains only one literal.
   \item The clause is added to the clause set and watched by the first two literals.
@@ -32,15 +35,12 @@ Adding a clause during solving is more challenging than adding a clause after ea
 
 But during solving, the literals in a clause can be assigned at different decision levels, and after addition of the clause, there might be multiple consequences that leads to different control flow of the current solving loop.
 
-%% invariant of 2-watching scheme
-
-
-
 %% interface description
 Method \code{bool add_clause_solving(vec<Lit>& clause, bool forgettable, CRef& conflict, bool& propagate)} is added in core \code{MiniSat::Solver}, dedicated to support clause addition during solving. This method handles all scenarios that might happen when a new clause is added during solving. These scenarios are:
 
 \begin{itemize}
   \item The clause is skipped.
+  \item The result is set as UNSAT.
   \item The clause is added, with the following possible consequences:
     \begin{itemize}
       \item No propagation or conflict analysis are needed.
@@ -51,21 +51,39 @@ Method \code{bool add_clause_solving(vec<Lit>& clause, bool forgettable, CRef& c
 
 The input parameters \code {vec<Lit>& clause} and \code{bool forgettable} give the clause and tell whether it is forgettable. A forgettable clause is indicated by the external propagator when it provides a clause.
 
-The return value \code {bool} indicates whether the clause is skipped (returning false) or added (returning true). If unit propagation is needed, the unit literal is assigned and added to trail, the output parameter \code{bool& propagate} is set true, and the program goes to the next loop for propagation. And when conflict analysis is needed, \code{CRef& conflict} ist set as the current added clause, and the program goes to \code{analyze}.
-
-%% implementation
-
-The input clause which is to be added is first
-
-The new clause might be a tautology or root-satisfied clause, in this case it will be ignored, and \code{add_clause_solving} returns false. And when the clause is not ignored, the return value is true, and still there might be consequences brought by this clause. When it is a unit, it will cause unit propagation, which sets parameter \code{propagate} true. It might also be a conflict that will be reported through parameter \code{conflict}.
+The return value \code {bool} indicates whether UNSAT is produced by this clause (returning true, otherwise false). If unit propagation is needed, the unit literal is assigned and added to trail, the output parameter \code{bool& propagate} is set true, and the program goes to the next loop for propagation. And when conflict analysis is needed, \code{CRef& conflict} ist set as the current added clause, and the program goes to \code{analyze}. When no propagation or conflict analysis is needed, none of the output parameters will be set, and the control flow goes further to check model or the next decision.
 
 \todo{graph: original CDCL loop in minisat and changed loop as in project presentation}
 
+%% invariant of 2-watching scheme
+
+In order to make sure the new clause is added without breaking the existing 2-watching scheme, an invariant across decision levels is established as following:
+
+\begin{itemize}
+  \item In decision level \code{l > 0}:
+  \begin{itemize}
+    \item A propagating clause is watched by the propagated literal(assigned true) and another literal(assigned false), both assigned on level l.
+    \item A conflict clause is watched by two literals(both false) on level l.
+  \end{itemize}
+  \item After backtracking to level \code{k < l}:
+  \begin{itemize}
+    \item The propagating clause or conflict clause at level l is still watched by the same two literals, now both unassigned.
+  \end{itemize}
+\end{itemize}
+
+%% implementation
+
+The clause to be added is first sorted by its literals and their current levels in the following order, so that when the first two literals become watching literals of the current clause, the clause will be still watched correctly by the two literals after backtracking according to the invariant:
+
+true literals (level low - high) - unassigned literals - false literals (level high - low)
+
+Similiar to clause addition after solving, the clause is also simplified by removing root-level false literals. And when the clause contains a root-level true literal, or it is a tautology, it is skipped and the funtion returns without any change to the data structure. When the clause contains only one literal, it is assigned true after backtracking to root level, and propagated.
+
+When the clause contains at least two literals, it is added to the clause set, and is watched by the first two literals after sorting. Depending on the assignment status of the 2 watching literals, there can be 6 cases, and their level assigned can introduce more sub-cases. Each case leads to its own outcome: \todo{describe the cases}
+
 % external propagation and lazy explaination
 
-% check model
 
-% decision
 
 \section{Extension of cvc5 for integrating Minisat}
 
