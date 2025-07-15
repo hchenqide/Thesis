@@ -4,4 +4,4 @@
 
 - Install MiKTeX, with latexmk package
 - Install tex-fmt
-- Add latex-workshop extension in vscode
+- Install latex-workshop extension in vscode
