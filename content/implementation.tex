@@ -111,9 +111,14 @@ Like a clause added during solving, a clause lazily added during conflict analys
 
 After implementing MiniSatUP, we integrated it with cvc5 based on the existing cvc5 integration with CaDiCaL, where the full \code{UserPropagator} is implemented to handle the interaction between cvc5 and the sat solver via IPASIR-IP.
 
+\todo{graph cvc5 connecting to both cadical/minisatup with internal minisat}
+
 % adding cadical interface for minisatup
 
 Apart from the IPASIR-UP interfaces, the cvc5 integration with CaDiCaL contains other interfaces that are specific to CaDiCaL. These interfaces are also implemented in MiniSatUP so that we don't need to change the existing code.
+
+\todo{explain a bit of cadical interface}
+\todo{explain cvc5 user push-pop/fixed notification/}
 
 % linking minisatup in cvc5
 
