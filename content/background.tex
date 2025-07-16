@@ -1,93 +1,82 @@
 \chapter{Background and Related Work}
 
-This chapter talks about the background of SAT and SMT solving, the IPASIR-UP interface and related works.
+This chapter gives a brief description on the background of SAT and SMT solving, the CDCL algorithm, the IPASIR and IPASIR-UP interfaces and related work.
 
 \section{Overview of SAT Solvers}
 
 % SAT problem
-The Boolean Satisfiability Problem (SAT) is the problem of determining whether there exists an assignment of truth values to variables such that a given Boolean formula evaluates to true. It is the first problem proven to be NP-complete, making it foundational in computational complexity and automated reasoning.
-
 % SAT solver
-Despite this theoretical hardness, modern SAT solvers have become highly effective at solving many practical instances encountered in fields such as hardware verification, cryptography, and artificial intelligence by using heuristics and a variety of preprocessing and inprocessing techniques.
+The Boolean Satisfiability Problem (SAT) is the problem of determining whether there exists an assignment of truth values to variables such that a given Boolean formula evaluates to true. It is the first problem proven to be NP-complete, making it foundational in computational complexity and automated reasoning. Despite this theoretical hardness, modern SAT solvers have become highly effective in solving many practical instances occurred in the fields such as hardware verification, cryptography, and artificial intelligence by using a variety of preprocessing and inprocessing techniques and heuristics.
 
 % CNF
-In practice, the Boolean formula is normalized in Conjunctive Normal Form (CNF) as input to the SAT solvers. A CNF formula is a conjunction (AND) of clauses, where each clause is a disjunction (OR) of literals. A literal is either a Boolean variable or its negation.
+% incremental solving
+In practice, the Boolean formula is normalized in Conjunctive Normal Form (CNF) as input to the SAT solvers. A CNF formula is a conjunction (AND) of clauses, where each clause is a disjunction (OR) of literals. A literal is either a Boolean variable or its negation. Moreover, in many applications, SAT problems evolve over time. New clauses or variables are added, and assumptions can change. Restarting the solver from scratch for each update is inefficient. To address this, modern solvers also support incremental solving, allowing them to retain learned information and state across multiple calls.
 
 % CDCL
-Most SAT solvers employ the Conflict-Driven Clause Learning (CDCL) algorithm. It iteratively assigns a chosen variable, do unit propagation, detects and analyzes conflicts to learn new clauses and backtracks to a previous decision level, or decide on another variable to propagate.
+Most SAT solvers employ the Conflict-Driven Clause Learning (CDCL) algorithm to solve SAT problems. It iteratively assigns a chosen literal, does propagation, detects and analyzes conflicts to learn new clauses and backtracks to a previous decision level, and when no conflicts arise, decides on another literal to propagate and continues the loop. It returns UNSAT when a conflict happens at root level, and returns SAT if all variables find an assignment. In this approach the solving efforts are kept in learnt clauses, making it possible for problems to be efficiently solved incrementally.
 
-% incremental solving
-In many applications, SAT problems evolve over time. New clauses or variables are added, and assumptions can change. Restarting the solver from scratch for each update is inefficient. To address this, modern solvers support incremental solving, allowing them to retain learned information and state across multiple calls.
-
-% IPASIR interface
-The IPASIR interface defines a standard API for incremental SAT solving. \todo{cite} It enables external tools to add clauses and new assumptions before each solver call, and retrieve value of literals from a satisfiable solution or failed assumptions from an unsatisfiable result.
+% IPASIR
+The IPASIR interface (reversed acronym for "Re-entrant Incremental Satisfiability Application Program Interface") defines a universal API for incremental SAT solving and is the standard interface for many SAT competitions. \cite{BALYO201645} It allows user to add clauses and new assumptions before each solver call, and retrieve value of literals from a satisfiable solution or failed assumptions from an unsatisfiable result.
 
 % MiniSat
-MiniSat is a ``minimalistic, easy to modify, highly efficient open-source SAT solver'' \todo{cite}. It internally employes CDCL and uses 2-watching scheme, and it supports incremental solving with IPASIR interface.
-
-\code{trail} keeps the assigned literals of each decision level.
-
 % 2-waching scheme
-
-Each clause is watched by two non-falsified literals. If one watching literal is falsified during propagation, another must be found, or it leads to unit propagation or conflict analysis.
+MiniSat is a ``minimalistic, easy to modify, highly efficient open-source SAT solver''. It internally employes CDCL algorithm with 2-watching scheme, and it supports incremental solving with interfaces similar to IPASIR. The 2-watching scheme makes it highly efficient to perform propagation, in which each clause is watched by two non-falsified literals, and if one watching literal is falsified during propagation, another must be found, or it leads to propagation or conflict. A \code{trail} is where all the assigned literals of each decision level are kept. And each assigned variable, if it's not from a unit clause, stores its reason clause for conflict analysis to trace back the literals that contribute to a conflict.
 
 % other SAT solvers
-Other SAT solvers are \todo{list more}
+Even though there are currently other SAT solvers like CaDiCaL that outperforms MiniSat in recent SAT competitions. MiniSat is still an ideal starting point for researching and experimenting new designs, for its efficiency and simpilicity. It is also integrated as a backend in many other applications, including SMT solvers like cvc5.
 
 \section{Overview of SMT Solvers}
 
 % SMT problem
-Satisfiability Modulo Theories (SMT) extends the Boolean Satisfiability Problem (SAT) by adding the ability to reason over richer domains, such as integers, real numbers, arrays, bit-vectors, and uninterpreted functions. Instead of asking whether a Boolean formula is satisfiable, SMT asks whether a logical formula is satisfiable with respect to a given background theory.
+Satisfiability Modulo Theories (SMT) extends the Boolean Satisfiability Problem (SAT) by adding the ability to reason over richer domains, such as integers, real numbers, arrays, bit-vectors, and uninterpreted functions. Instead of asking whether a Boolean formula is satisfiable, SMT asks whether a more general logical formula is satisfiable with respect to a given background theory.
 
 % SMT solver
-SMT solvers are often built on top of SAT solvers, which specializes in solving the Boolean part of the SMT problems. Modern SMT solvers rely on incremental SAT solving such as IPASIR to interact with SAT solvers, to refine a solution by adding more constraints.
+SMT solvers are often built on top of SAT solvers, which specialize in solving the Boolean part of the SMT problems. Modern SMT solvers rely on incremental SAT solving such as IPASIR to interact with SAT solvers to refine a solution by adding more constraints.
 
 % cvc5
-cvc5 is \todo{introduce cvc5}
+cvc5 is a state-of-the-art open-source SMT solver that supports a broad range of theories. \cite{10.1007/978-3-030-99524-9_24} It is the successor to \code{cvc4} in the cvc (cooperating validity checker) family, and is designed for both research and industrial applications.
 
-% other SMT solvers
-Other SMT solvers include ``z3'' ``OpenSMT'', etc.
+Internally, cvc5 integrates CDCL-based SAT engines, including  MiniSat, with a collection of dedicated theory solvers, where the SAT solvers handle the Boolean abstraction of the input formula, and theory solvers verify the consistency of theory-specific constraints. When a theory conflict is detected, the responsible theory solver generates an explanation in the form of a learned clause, which is fed back to the SAT solver to guide future search.
 
 \section{IPASIR-UP Interface}
 
 % background
-In order to achieve a more fine-grained interaction between SMT solver and SAT solver, the IPASIR-UP interface is introduced \cite{fazekas_et_al:LIPIcs.SAT.2023.8}. The IPASIR-UP interface is an extension of IPASIR interface with user propagator. It allows more control over the solving process from the user with a set of callback functions, where the solver does it basic job on propagating and inprocessing, and the user can decide the next assignment, propagate units or raise conflicts in each CDCL loop.
+In order to achieve a more fine-grained interaction between SMT solver and SAT solver, the IPASIR-UP interface is introduced \cite{fazekas_et_al:LIPIcs.SAT.2023.8}. The IPASIR-UP interface is an extension of IPASIR interface with user propagator. It allows more control over the solving process from the user with a set of callback functions, where the solver does it basic job on propagating and inprocessing, and the user can decide the next assignment, propagate units or raise conflicts in each CDCL loop. A recent version of cvc5 implements the IPASIR-UP interface for its integration with CaDiCaL.
 
 % description of functions
 The IPASIR-UP interface contains multiple callback functions, which can be grouped in the following way:
 
 \begin{itemize}
-  \item Notification functions. Notify assignments, new decision levels and backtracks:
+  \item Notify assignments, new decision levels and backtracks
     \begin{itemize}
       \item \code{notify_assignment}
       \item \code{notify_new_decision_level}
       \item \code{notify_backtrack}
     \end{itemize}
-  \item Get an external clause
+  \item Request external clauses
     \begin{itemize}
       \item \code{cb_has_external_clause}
       \item \code{cb_add_external_clause_lit}
     \end{itemize}
-  \item Get an externally propagated unit and lazily add its reason clause
+  \item Request external propagations and lazily add reason clauses
     \begin{itemize}
       \item \code{cb_propagate}
       \item \code{cb_add_reason_clause_lit}
     \end{itemize}
-  \item Get the next decision
+  \item Request next decision or a full model check
     \begin{itemize}
       \item \code{cb_decide}
-    \end{itemize}
-  \item Check model when every variable is assigned
-    \begin{itemize}
       \item \code{cb_check_found_model}
     \end{itemize}
 \end{itemize}
 
-\section{Fuzzing of Sat Solvers}
+\section{Correctness of SAT and SMT Solving}
 
-% fuzzers
+% fuzzing
+Fuzzing is an automated testing technique that generates a large number of random input data to uncover bugs, crashes, or unexpected behavior in software. In the context of SAT and SMT solvers, fuzzing plays a critical role in ensuring correctness, robustness, and performance under diverse and potentially adversarial inputs.
 
 % proof formats
+Apart from fuzzing, proof generation is 
 
 \section{Related Work}
 

@@ -5,7 +5,7 @@ This chapter provides a detailed account of the implementation of MiniSatUP (Min
 \section{Adaptation of MiniSat to IPASIR-UP}
 
 % overview and principle
-Adaptation of MiniSat to IPASIR-UP involves several steps. First, the IPASIR-UP interface is added to the header file and interaction with user propagator is inserted in the solving loop. Then, adding a clause provided by user propagator during solving is implemented. Finally, adding an externally propagated unit from user and lazy explaination of the unit is implemented. The implementation is connected and tested with a fuzzer before integrating in cvc5.
+Adaptation of MiniSat to IPASIR-UP involves several steps. First, the IPASIR-UP interface is added to the header file and interaction with user propagator is inserted in the solving loop. Then, adding a clause provided by user propagator during solving is implemented. Finally, adding an externally propagated literal from user and lazy explaination of the literal is implemented.
 
 MiniSat contains \code{core} solver and \code{simp} solver. In addition to the core CDCL solving loop performed by \code{core} solver, \code{simp} solver performs subsumption and variable elimation. In this work, only the \code{core} solver is modifed. And the modification is made as minimum as possible, without altering the major control flow of the original code, so that the solver's original behaviour could be preserved while cleanly supporting the IPASIR-UP interface, enabling an easier inspection and comparison of the behaviour change introduced by the modification.
 
@@ -14,10 +14,10 @@ Firstly, the \code{UserPropagator} class declaration of the IPASIR-UP interface 
 
 % interaction within CDCL loop
 %% assignment and backtrack notification
-If \code{user_propagator} is initialized in \code{Solver}, it will interact with the solver in each CDCL loop after propagation and possible conflict analysis, before the next decision is made. At the beginning of each interaction, the user propagator is synchronized of the current assignments and possible backtracks. An index on the trail up to which the assignments are notified is maintained for this purpose. Then the user propagator is requested of possible externally propagated units and external clauses.
+If \code{user_propagator} is initialized in \code{Solver}, it will interact with the solver in each CDCL loop after propagation and possible conflict analysis, before the next decision is made. At the beginning of each interaction, the user propagator is synchronized of the current assignments and possible backtracks. An index on the trail up to which the assignments are notified is maintained for this purpose. Then the user propagator is requested of possible external propagations and external clauses.
 
 %% decision and check model
-When there are no such units or clauses, or there's no consequent change of control flow after adding them, the user propagator is requested of the next decision literal, if there are still unassigned variables. The new decision is taken and notified to user propagator while going to the next loop of propagation. Or the user propagator is requested to do a full model check before returning SAT if every variable is assigned, so that a new solver call could be avoided if there should still be inconsistence of model on the user side. And when the model check fails, the loop is continued and user propagator is responsible to provide new unit propagations or clauses to be taken into account.
+When there are no such upropagationsnits or clauses, or there's no consequent change of control flow after adding them, the user propagator is requested of the next decision literal, if there are still unassigned variables. The new decision is taken and notified to user propagator while going to the next loop of propagation. Or the user propagator is requested to do a full model check before returning SAT if every variable is assigned, so that a new solver call could be avoided if there should still be inconsistence of model on the user side. And when the model check fails, the loop is continued and user propagator is responsible to provide new propagations or clauses to be taken into account.
 
 % external clause addition during solving
 %% comparison with clause addition after solving
@@ -41,14 +41,14 @@ Method \code{bool add_clause_solving(vec<Lit>& clause, bool forgettable, CRef& c
   \item The clause is added, with the following possible consequences:
     \begin{itemize}
       \item No propagation or conflict analysis needed.
-      \item Unit propagation needed.
+      \item Propagation needed.
       \item Conflict analysis needed.
     \end{itemize}
 \end{itemize}
 
 The input parameters \code {vec<Lit>& clause} and \code{bool forgettable} give the clause and tell whether it is forgettable. A forgettable clause is indicated by the user propagator when it provides a clause, and it can be removed during simplification of the clause set.
 
-The return value \code {bool} indicates whether UNSAT is produced by this clause (returning true when UNSAT, otherwise false). If unit propagation is needed, the unit literal is assigned and added to trail, the output parameter \code{bool& propagate} is set true, and the program goes to the next loop for propagation. And when conflict analysis is needed, \code{CRef& conflict} ist set as the current added clause, and the program goes to \code{analyze}. When no propagation or conflict analysis is needed, none of the output parameters will be set, and the control flow goes further to check model or the next decision.
+The returning \code {bool} indicates whether UNSAT is produced by this clause (returning true when UNSAT, otherwise false). If propagation is needed, the literal to propagate is assigned and added to trail, the output parameter \code{bool& propagate} is set true, and the program goes to the next loop for propagation. And when conflict analysis is needed, \code{CRef& conflict} ist set as the current added clause, and the program goes to \code{analyze}. When no propagation or conflict analysis is needed, none of the output parameters will be set, and the control flow goes further to check model or the next decision.
 
 \todo{graph: original CDCL loop in minisat and changed loop as in project presentation}
 
@@ -74,7 +74,7 @@ The clause to be added is first sorted by its literals and their current levels 
 
 true literals (level low - high) - unassigned literals - false literals (level high - low)
 
-Similiar to clause addition after solving, the clause is also simplified by removing root-level false literals. And when the clause contains a root-level true literal, or it is a tautology, it is skipped and the funtion returns without any additional consequence, and the next clause is requested until there's no more external clauses by the user propagator.
+Similar to clause addition after solving, the clause is also simplified by removing root-level false literals. And when the clause contains a root-level true literal, or it is a tautology, it is skipped and the funtion returns without any additional consequence, and the next clause is requested until there's no more external clauses by the user propagator.
 
 When the clause contains only one literal, it is assigned true after backtracking to root level, and propagated. When the clause contains at least two literals, it is added to the clause set, and is watched by the first two literals after sorting. Depending on the assignment status of the 2 watching literals, there can be 6 cases, and their levels when being assigned can introduce more sub-cases. Each case leads to its own outcome:
 
@@ -99,9 +99,9 @@ In the last step of adapting MiniSat to IPASIR-UP, external propagation and lazy
 
 Usually when a literal is assigned, we need to provide its reason clause. And the reason clause is needed during conflict analysis. But considering that not all reason clauses will be explored, it could be more efficient that the reason is not provided to the solver immediately, but only when it is needed, to avoid uncessary storage space and cost of generating the reason clause on the user side.
 
-In the case of external propagation, only the propagated unit is required from the user propagator. This literal will be assigned with a tag \code{CRef_External_False} or \code{CRef_External_True} declaring that its reason clause is not present yet. And since the reason clause is attached with the variable only, the tag also indicates whether the literal is falsified, to allow the literal to be computed correctly from the variable.
+In the case of external propagation, only the propagated literal is required from the user propagator. This literal will be assigned with a tag \code{CRef_External_False} or \code{CRef_External_True} declaring that its reason clause is not present yet. And since the reason clause is attached with the cooresponding variable of the literal only, the tag must also indicate whether the literal is falsified, so it can be computed correctly from the variable.
 
-When a unit from user propagator is already assigned true, we skip it. And when it's already assigned false, which means that there is a conflict, we get the reason clause immediately and add the clause through our function \code{add_clause_solving} that is explained earlier.
+When the externally propagated literal from user propagator is already assigned true, we skip it. And when it's already assigned false, which means that there is a conflict, we get the reason clause immediately and add the clause by reusing our previous function \code{add_clause_solving}.
 
 Like a clause added during solving, a clause lazily added during conflict analysis is also sorted the same way and watched by the first two literals, and it can also cause propagation to be re-performed on a lower decision level. When the clause is a unit clause, a backtrack to root level is necessary. And when the watching literals of the clause are of different levels, it is also necessary to align their levels and redo the propagation. When such a backtrack is to be performed on addition of an incoming clause, the conflict analysis will be interrupted by an exception, and the analysis context will be cleared.
 
