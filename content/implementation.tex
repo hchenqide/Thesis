@@ -9,6 +9,8 @@ Adaptation of MiniSat to IPASIR-UP involves several steps. First, the IPASIR-UP 
 
 MiniSat contains \code{core} solver and \code{simp} solver. In addition to the core CDCL solving loop performed by \code{core} solver, \code{simp} solver performs subsumption and variable elimation. In this work, only the \code{core} solver is modifed. And the modification is made as minimum as possible, without altering the major control flow of the original code, so that the solver's original behaviour could be preserved while cleanly supporting the IPASIR-UP interface, enabling an easier inspection and comparison of the behaviour change introduced by the modification.
 
+\todo{how many lines of code changed}
+
 % adding UserPropagator interface
 Firstly, the \code{UserPropagator} class declaration of the IPASIR-UP interface is added in the header file \code{Solver.h}, and the \code{user_propagator} member variable is added to \code{MiniSat::Solver}, which can be set by \code{connect_user_propagator} for the solver to interact with during solving. If \code{user_propagator} is not initialized, then the \code{Solver} behaves just like the original solver.
 
@@ -93,6 +95,8 @@ When the clause contains only one literal, it is assigned true after backtrackin
 
 When the clause causes a propagation, we always backtrack to the level of the second literal, and then assign the first literal on this level, so as to make sure the levels of assignment for the two watching literals are always the same.
 
+\todo{nonchro, introduce out-of-order assignments and the bug with cadical}
+
 % external propagation and lazy explaination
 
 In the last step of adapting MiniSat to IPASIR-UP, external propagation and lazy explaination of the externally propagated literal is supported.
@@ -109,7 +113,7 @@ Like a clause added during solving, a clause lazily added during conflict analys
 
 % duplicating the interface for cadical in cvc5
 
-After implementing MiniSatUP, we integrated it with cvc5 based on the existing cvc5 integration with CaDiCaL, where the full \code{UserPropagator} is implemented to handle the interaction between cvc5 and the sat solver via IPASIR-IP.
+After implementing MiniSatUP, we integrated it with cvc5 based on the existing cvc5 integration with CaDiCaL, where the full \code{UserPropagator} is implemented to handle the interaction between cvc5 and the SAT solver via IPASIR-IP.
 
 \todo{graph cvc5 connecting to both cadical/minisatup with internal minisat}
 
@@ -123,3 +127,6 @@ Apart from the IPASIR-UP interfaces, the cvc5 integration with CaDiCaL contains 
 % linking minisatup in cvc5
 
 cvc5 is built with CMake and its dependencies are added through \code{find_package} command in CMake. We wrapped MiniSatUP in a CMake package for cvc5 to be able to reference and link with it.
+
+options
+

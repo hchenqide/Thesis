@@ -1,22 +1,26 @@
 \chapter{Background and Related Work}
 
-This chapter gives a brief description on the background of SAT and SMT solving, the CDCL algorithm, the IPASIR and IPASIR-UP interfaces and related work.
+This chapter provides a brief overview of the background on SAT and SMT solving, the CDCL algorithm, the IPASIR and IPASIR-UP interfaces, as well as related work.
 
 \section{Overview of SAT Solvers}
 
 % SAT problem
 % SAT solver
-The Boolean Satisfiability Problem (SAT) is the problem of determining whether there exists an assignment of truth values to variables such that a given Boolean formula evaluates to true. It is the first problem proven to be NP-complete, making it foundational in computational complexity and automated reasoning. Despite this theoretical hardness, modern SAT solvers have become highly effective in solving many practical instances occurred in the fields such as hardware verification, cryptography, and artificial intelligence by using a variety of preprocessing and inprocessing techniques and heuristics.
+The Boolean Satisfiability Problem (SAT) is the problem of determining whether there exists an assignment of truth values to variables such that a given Boolean formula evaluates to true. It is the first problem proven to be NP-complete, making it foundational in computational complexity and automated reasoning. Despite this theoretical hardness, modern SAT solvers have become highly effective in solving many practical instances occurred in the fields such as hardware verification, model checking, and automated theorem proving by using a variety of preprocessing and inprocessing techniques and heuristics.
 
 % CNF
+In common practice, the Boolean formula is normalized in Conjunctive Normal Form (CNF) as input to the SAT solvers. A CNF formula is a conjunction (AND) of clauses, where each clause is a disjunction (OR) of literals. A literal is either a Boolean variable, indexed by positive integers, or its negation.
+
 % incremental solving
-In practice, the Boolean formula is normalized in Conjunctive Normal Form (CNF) as input to the SAT solvers. A CNF formula is a conjunction (AND) of clauses, where each clause is a disjunction (OR) of literals. A literal is either a Boolean variable or its negation. Moreover, in many applications, SAT problems evolve over time. New clauses or variables are added, and assumptions can change. Restarting the solver from scratch for each update is inefficient. To address this, modern solvers also support incremental solving, allowing them to retain learned information and state across multiple calls.
+Moreover, in many applications, SAT problems evolve over time. New clauses or variables are added, and assumptions can change. Restarting the solver from scratch for each update is inefficient. To address this, modern solvers also support incremental solving, allowing them to retain learned information and states across multiple calls.
 
 % CDCL
-Most SAT solvers employ the Conflict-Driven Clause Learning (CDCL) algorithm to solve SAT problems. It iteratively assigns a chosen literal, does propagation, detects and analyzes conflicts to learn new clauses and backtracks to a previous decision level, and when no conflicts arise, decides on another literal to propagate and continues the loop. It returns UNSAT when a conflict happens at root level, and returns SAT if all variables find an assignment. In this approach the solving efforts are kept in learnt clauses, making it possible for problems to be efficiently solved incrementally.
+Most SAT solvers employ the Conflict-Driven Clause Learning (CDCL) algorithm to solve SAT problems. It iteratively assigns a chosen literal, does propagation, detects and analyzes conflicts to learn new clauses and backtracks to a previous decision level, and when no conflicts arise, decides on another literal to propagate and continues the loop. It returns UNSAT when a conflict happens at root level, and returns SAT if all variables find an assignment. In this approach, the solving progress are kept in learnt clauses, which also makes it possible for efficiently solving incremental SAT problems.
 
 % IPASIR
-The IPASIR interface (reversed acronym for "Re-entrant Incremental Satisfiability Application Program Interface") defines a universal API for incremental SAT solving and is the standard interface for many SAT competitions. \cite{BALYO201645} It allows user to add clauses and new assumptions before each solver call, and retrieve value of literals from a satisfiable solution or failed assumptions from an unsatisfiable result.
+The IPASIR interface (reversed acronym for "Re-entrant Incremental Satisfiability Application Program Interface") defines a universal API for incremental SAT solving and is the standard interface for many SAT competitions over the years. \cite{BALYO201645} It allows user to add clauses and new assumptions before each solver call, and retrieve value of literals from a satisfiable solution or failed assumptions from an unsatisfiable result.
+
+\todo{a bit more: this is often enough in many cases, and is supported by many solvers}
 
 % MiniSat
 % 2-waching scheme
@@ -69,6 +73,8 @@ The IPASIR-UP interface contains multiple callback functions, which can be group
       \item \code{cb_check_found_model}
     \end{itemize}
 \end{itemize}
+
+\todo{explain the functions, referencing the paper}
 
 \section{Correctness of SAT and SMT Solving}
 
