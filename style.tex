@@ -1,0 +1,20 @@
+\usepackage{hyperref}
+
+\usepackage{xcolor}
+\usepackage{xparse}
+\usepackage{listings}
+\newcommand*{\code}[1]{\space\lstinline[basicstyle=\ttfamily, breaklines]|#1|\space}
+\lstset{
+  aboveskip=10pt,
+  belowskip=10pt,
+  basicstyle=\small\ttfamily,
+  breaklines=true,
+  breakatwhitespace=true,
+  columns=fullflexible,
+  backgroundcolor=\color{black!5}
+}
+
+\usepackage{setspace}
+\onehalfspacing
+
+\newcommand*{\todo}[1]{\textbf{(TODO: #1)}}

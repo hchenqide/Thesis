@@ -5,7 +5,10 @@ This chapter presents the correctness testing conducted on MiniSatUP and its int
 \section{Correctness}
 
 % overview
-In developing a software that does formal proofs and verification, its own correctness is vitally important. Testing techniques like fuzzing and regression tests are employed in the development of many. In this work, a fuzzer for the IPASIR-UP interface is developed during implementation of MiniSatUP, to ensure the functionality of the interface is fully achieved by the implementation, as well as its correctness.
+In developing a program for tasks like formal verification of hardware and software, its own correctness and robustness is essential. Testing techniques like fuzzing and regression tests are employed in the development of many such software.
+
+% fuzzing
+Fuzzing is an automated testing technique that generates a large number of random and potentially adversarial input data to uncover bugs, crashes, or unexpected behavior in software. In this work, a fuzzer for the IPASIR-UP interface is developed during implementation of MiniSatUP, to ensure the functionality of the interface as well as its correctness.
 
 % minisat fuzzer
 %% connection
@@ -19,6 +22,9 @@ The lazy propagation interface is also implemented by checking if the next claus
 
 % bugs before cvc5 integration
 The fuzzer has helped to identify some bugs in the early stages of implementing MiniSatUP, like an error in the predicate for sorting a clause, and another issue related with the timing of attaching user propagator to the solver when some assignments are not informed.
+
+User propagators should be connected before adding clauses to the solver, in case of missing notifications during adding and processing clauses.
+currently, an assertion is added in the code that enforces the user propagator to be added before any assignments occur.
 
 The implementation is connected and tested with a fuzzer before integrating in cvc5.
 

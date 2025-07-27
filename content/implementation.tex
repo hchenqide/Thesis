@@ -112,6 +112,13 @@ Like a clause added during solving, a clause lazily added during conflict analys
 \section{Extension of cvc5 for integrating MiniSatUP}
 
 After implementing MiniSatUP, we integrated it with cvc5 based on the existing cvc5 integration with CaDiCaL, where the full \code{UserPropagator} is implemented to handle the interaction between cvc5 and the SAT solver via IPASIR-IP.
+all names cadical are renamed to minisatup
+
+in namespace MiniSatUP
+
+% the minisatup.h header including all interface functions to implement
+But a direct connection is not yet possible because in the code of cvc5 integration of CaDiCaL, there are .
+By a simple search in the code of all referenced functions from the solver, a list of the functions is created in minisatup.h, and they are firstly tested only with declaration without implementation yet, just to test that minisatup can be linked correctly. And the functions are then implemented if errors occur when running the tests, so that the expected behaviour of the functions are fullfilled without uncessary parts' intervention, and they can be tested immediately. In the end, some functions are not implemented since they never get called or referenced.
 
 \todo{graph cvc5 connecting to both cadical/minisatup with internal minisat}
 
