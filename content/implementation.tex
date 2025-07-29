@@ -115,9 +115,18 @@ Like a clause added during solving, a clause lazily added during conflict analys
 \section{Extension of cvc5 for integrating MiniSatUP}
 
 % overview
-After implementing MiniSatUP, we integrated it with cvc5 based on the existing cvc5 integration with CaDiCaL, where the full \code{UserPropagator} is implemented to handle the interaction between cvc5 theory solvers and the SAT solver via IPASIR-IP. We copied the existing sat solver class that implements IPASIR-UP, identified all functions it references the CaDiCaL solver, including those functions that are not part of IPASIR-UP, and adapted MiniSatUP further to support these functions. 
+After implementing MiniSatUP, we integrated it with cvc5 based on the existing cvc5 integration with CaDiCaL, where the full \code{UserPropagator} is implemented to handle the interaction between cvc5 theory solvers and the SAT solver via IPASIR-IP, and CaDiCaL is referenced as an external package. We copied the existing sat solver class that implements IPASIR-UP for CaDiCaL, identified all functions it references the CaDiCaL solver, including those functions that are not part of IPASIR-UP, and adapted MiniSatUP further to support these functions.
 
-\todo{graph cvc5 connecting to both cadical/minisatup with internal minisat}
+The architecture of cvc5 is shown in figure~\ref{fig:cvc5}, which has an internal MiniSat, and connects with CaDiCaL via IPASIR-UP interface.
+
+\begin{figure}
+  \centering
+  \includesvg[width=0.5\textwidth]{cvc5.drawio.svg}
+  \caption{Architecture of cvc5 with MiniSat and IPASIR-UP interface}
+  \label{fig:cvc5}
+\end{figure}
+
+\todo{why copying the code, not reusing the common code for both CaDiCaL and MiniSatUP?}
 
 % copy cadical.h
 In cvc5, we copied the existing \code{cadical.h} and \code{cadical.cpp}, which contain the implementation of IPASIR-UP, and created \code{minisatup.h} and \code{minisatup.cpp} for the integration. The symbols are renamed to \code{MiniSatUP} to distinguish from CaDiCaL.
