@@ -50,10 +50,16 @@ The input parameters \code {vec<Lit>& clause} and \code{bool forgettable} give t
 
 The returning \code{bool} indicates whether UNSAT is produced by this clause (returning true when UNSAT, otherwise false). If propagation is needed, the literal to propagate is assigned and added to trail, the output parameter \code{bool& propagate} is set true, and the program goes to the next loop for propagation. And when conflict analysis is needed, \code{CRef& conflict} ist set as the current added clause, and the program goes to conflict analysis. When no propagation or conflict analysis is needed, none of the output parameters will be set, and the control flow goes further to check model or the next decision.
 
-\todo{graph: original CDCL loop in minisat and changed loop as in project presentation}
+The interaction with user propagator and adding an external clause is inserted into the original CDCL loop, as figure~\ref{fig:flow} shows.
+
+\begin{figure}
+  \centering
+  \includesvg[width=\textwidth]{flow.drawio.svg}
+  \caption{Original CDCL loop in MiniSat and updated CDCL loop}
+  \label{fig:flow}
+\end{figure}
 
 %% invariant of 2-watching scheme
-
 In order to make sure the new clause is added without breaking the existing 2-watching scheme, an invariant across decision levels is established as following:
 
 \begin{itemize}
@@ -69,7 +75,6 @@ In order to make sure the new clause is added without breaking the existing 2-wa
 \end{itemize}
 
 %% implementation
-
 The clause to be added is first sorted by its literals and their current levels in the following order, so that when the first two literals become watching literals of the current clause, the clause will be still watched correctly by the two literals after backtracking according to the invariant:
 
 true literals (level low - high) - unassigned literals - false literals (level high - low)
@@ -96,7 +101,6 @@ When the clause causes a propagation, we always backtrack to the level of the se
 \todo{nonchro, introduce out-of-order assignments and the bug with cadical}
 
 % external propagation and lazy explaination
-
 In the last step of adapting MiniSat to IPASIR-UP, external propagation and lazy explaination of the externally propagated literal is supported.
 
 Usually when a literal is assigned, we need to provide its reason clause. And the reason clause is needed during conflict analysis. But considering that not all reason clauses will be explored, it could be more efficient that the reason is not provided to the solver immediately, but only when it is needed, to avoid uncessary storage space and cost of generating the reason clause on the user side.
