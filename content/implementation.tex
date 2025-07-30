@@ -103,7 +103,7 @@ When the clause causes a propagation, we always backtrack to the level of the se
 % external propagation and lazy explaination
 In the last step of adapting MiniSat to IPASIR-UP, external propagation and lazy explaination of the externally propagated literal is supported.
 
-Usually when a literal is assigned, we need to provide its reason clause. And the reason clause is needed during conflict analysis. But considering that not all reason clauses will be explored, it could be more efficient that the reason is not provided to the solver immediately, but only when it is needed, to avoid uncessary storage space and cost of generating the reason clause on the user side.
+Usually when a literal is assigned, we need to provide its reason clause, which is needed during conflict analysis. But considering that in practice usually not all reason clauses will be examined, it could be more efficient that the reason is not provided to the solver immediately, but only when it is needed, to avoid uncessary clause processing and addition space for storing the clause, as well as the cost of generating the reason clause on the user side.
 
 In the case of external propagation, only the propagated literal is required from the user propagator. This literal will be assigned with a tag \code{CRef_External_False} or \code{CRef_External_True} declaring that its reason clause is not present yet. And since the reason clause is attached with the cooresponding variable of the literal only, the tag must also indicate whether the literal is falsified, so it can be computed correctly from the variable.
 
@@ -126,10 +126,8 @@ The architecture of cvc5 is shown in figure~\ref{fig:cvc5}, which has an interna
   \label{fig:cvc5}
 \end{figure}
 
-\todo{why copying the code, not reusing the common code for both CaDiCaL and MiniSatUP?}
-
 % copy cadical.h
-In cvc5, we copied the existing \code{cadical.h} and \code{cadical.cpp}, which contain the implementation of IPASIR-UP, and created \code{minisatup.h} and \code{minisatup.cpp} for the integration. The symbols are renamed to \code{MiniSatUP} to distinguish from CaDiCaL.
+In cvc5, we copied the existing \code{cadical.h} and \code{cadical.cpp}, which contain the implementation of IPASIR-UP, and created \code{minisatup.h} and \code{minisatup.cpp} for the integration. The symbols are renamed to \code{MiniSatUP} to distinguish from CaDiCaL. We didn't try to connect to and reuse the code directly because the IPASIR-UP interface in cvc5 is tightly bound with CaDiCaL with a lot of symbols named after CaDiCaL and a lot of CaDiCaL-specific procedures. An abstraction of the common interface for both CaDiCaL and MiniSatUP, and other possible SAT solvers that implement IPASIR-UP is still under design and development.
 
 % other interface functions
 But a direct compilation and linking is not yet possible, because in this implementation of cvc5 integration of CaDiCaL, there are functions referenced from CaDiCaL solver that are not implemented by MiniSatUP. By a simple search in the code of all referenced functions, a list is created in minisatup.h, and these functions are later implemented in MiniSatUP as well. They include:

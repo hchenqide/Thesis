@@ -35,7 +35,7 @@ Even though there are currently other SAT solvers like CaDiCaL that outperforms 
 In order to achieve a more fine-grained interaction between user applications and SAT solver, IPASIR-UP interface was introduced \cite{fazekas_et_al:LIPIcs.SAT.2023.8}. IPASIR-UP interface is an extension of IPASIR interface with user propagators. It allows more control over the solving process from the user with a set of callback functions, where the solver does it basic job on propagating and inprocessing, and the user can decide the next assignment, propagate units or raise conflicts in each CDCL loop. A recent version of cvc5 and the SAT Modulo Symmetries (SMS) framework utilize the IPASIR-UP interface for their integrations with CaDiCaL.
 
 % description of functions
-The IPASIR-UP interface contains multiple callback functions in the form of virtual functions in C++, as the code below shows, which need to be inherited and implemented by the user applications and called by the SAT solver in different solving stages.
+The IPASIR-UP interface contains multiple callback functions in the form of virtual functions in C++, as the code below shows, which need to be inherited and implemented by the user applications and called by the SAT solver in different solving stages. The \code{cb_} prefix stands for \code{callback}.
 
 \begin{lstlisting}
 class UserPropagator
