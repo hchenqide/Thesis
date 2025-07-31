@@ -96,21 +96,23 @@ When the clause contains only one literal, it is assigned true after backtrackin
   \item \code{true, true}: No further action.
 \end{itemize}
 
-When the clause causes a propagation, we always backtrack to the level of the second literal, and then assign the first literal on this level, so as to make sure the levels of assignment for the two watching literals are always the same.
-
-\todo{nonchro, introduce out-of-order assignments and the bug with cadical}
+When the clause causes a propagation, we always backtrack to the level of the second literal, and then assign the first literal on this level, so as to make sure the levels of assignment for the two watching literals are always the same. Backtracking just to redo an exisiting assignment on a different level can be inefficient, since all the effort of propagation is wasted. It is also possible to just change the level of assignment for a variable while keeping the trail unchanged, known as out-of-order assignment or chronological backtracking, but this is tricky and for the current implementation, not necessary.
 
 % external propagation and lazy explaination
-In the last step of adapting MiniSat to IPASIR-UP, external propagation and lazy explaination of the externally propagated literal is supported.
+In the last step of adapting MiniSat to IPASIR-UP, external propagation and lazy explaination of the externally propagated literal is supported. We inserted the callback function \code{cb_propagate} in the interaction code with user propagator to request propagated literals before requesting external clauses. The cooresponding variable of the literal will be assigned accordlingly with a tag \code{Clause_External} as a placeholder for its reason clause. If the literal is already assigned true, we skip it. And if it's already assigned false, which means that there is a hidden conflict, we get its reason clause immediately and add the clause reusing our previous function \code{add_clause_solving}.
 
-Usually when a literal is assigned, we need to provide its reason clause, which is needed during conflict analysis. But considering that in practice usually not all reason clauses will be examined, it could be more efficient that the reason is not provided to the solver immediately, but only when it is needed, to avoid uncessary clause processing and addition space for storing the clause, as well as the cost of generating the reason clause on the user side.
+During conflict analysis, reason clauses of assignments will be accessed for searching, and when a variable marked with \code{Clause_External} needs to be explained, we request the clause with callback \code{cb_add_reason_clause_lit} from user propagator. Like a clause being added during solving, a clause lazily added during conflict analysis is also sorted the same way and watched by the first two literals, though in this case it is either a root-level unit clause, or the first two watching literals are always true and false respectively, because the reason clause at this time should always be true with its only true literal being the literal to be explained.
 
-In the case of external propagation, only the propagated literal is required from the user propagator. This literal will be assigned with a tag \code{CRef_External_False} or \code{CRef_External_True} declaring that its reason clause is not present yet. And since the reason clause is attached with the cooresponding variable of the literal only, the tag must also indicate whether the literal is falsified, so it can be computed correctly from the variable.
+Adding a true clause during conflict analysis can also cause propagation to be re-performed on a lower decision level, similiar to the \code{unit} case and \code{true, false} case when adding an external clause. When the clause is a unit clause, a backtrack to root level is necessary. And when the watching literals of the clause are of different levels, it is also necessary to backtrack to the lower level and redo propagation so as to align their levels. The figure \ref{fig:analyze} shows the updated CDCL loop for adding a reason clause lazily during conflict analysis.
 
-When the externally propagated literal from user propagator is already assigned true, we skip it. And when it's already assigned false, which means that there is a conflict, we get the reason clause immediately and add the clause by reusing our previous function \code{add_clause_solving} to avoid duplication.
+\begin{figure}[h!]
+  \centering
+  \includesvg[width=0.6\textwidth]{analyze.drawio.svg}
+  \caption{Updated CDCL loop with clause addition during conflict analysis}
+  \label{fig:analyze}
+\end{figure}
 
-Like a clause added during solving, a clause lazily added during conflict analysis is also sorted the same way and watched by the first two literals, and it can also cause propagation to be re-performed on a lower decision level. When the clause is a unit clause, a backtrack to root level is necessary. And when the watching literals of the clause are of different levels, it is also necessary to align their levels and redo the propagation. When such a backtrack is to be performed on addition of an incoming clause, the conflict analysis will be interrupted by a C++ exception, and the analysis context will be cleared.
-\todo{what is the analysis cotext and how many lines changed here}
+In order to achieve this without introducing many breaking changes for conflict analysis, we employ C++ exception to break from conflict analysis and raise the backtrack information expressed in a tuple of (destination level, propagating literal, reason clause reference). The analysis context, which stores the currently explored literals, will be cleared after catching the exception in the solving loop. With this trick, only 5 lines of code in \code{analyze} are changed, and 7 lines of code in the solving loop are added.
 
 \section{Extension of cvc5 for integrating MiniSatUP}
 

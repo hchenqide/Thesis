@@ -73,7 +73,7 @@ They can be grouped grouped in the following way and simply explained:
     \end{itemize}
   \item Request external propagations and lazily add reason clauses.
     \begin{itemize}
-      \item \code{cb_propagate} Requests user propagator for a possible externally propagated literal, whose reason clause may be later requested by the next callback function \code{cb_add_reason_clause_lit}. User propagator returns 0 if there isn't any.
+      \item \code{cb_propagate} Requests user propagator for a possible externally propagated literal, whose reason clause may be later requested by the next callback function \code{cb_add_reason_clause_lit}. User propagator returns 0 if there isn't any. Usually when a literal is assigned, we need to explain the assignment with a reason clause, which will be needed during conflict analysis. But considering that in practice usually not all reason clauses will be examined, so it could be more efficient that the reason is not provided to the solver immediately, but only when it is needed, to avoid uncessary clause processing and addition space for storing the clause, as well as the cost of generating the reason clause on the user application side.
       \item \code{cb_add_reason_clause_lit} Gets the literals of the reason clause for an externally propagated literal one by one, terminating with 0. This is usually called while doing conflict analysis and the reason clause is to be lazily added. The clause will be non-forgettable.
     \end{itemize}
   \item Request next decision or a full model check.
