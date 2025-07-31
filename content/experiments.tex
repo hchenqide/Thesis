@@ -2,7 +2,7 @@
 
 This chapter presents the experiments conducted on MiniSatUP and its integration with cvc5. We performed correctness testing by a fuzzer implemented for IPASIR-UP as well as cvc5 regression tests and fixed bugs during development, and we also conducted performance testing on cvc5 after the intergration, which demonstrates no measurable performance overhead with introducing IPASIR-UP.
 
-\section{Correctness}
+\section{Correctness Testing}
 
 % overview
 In developing a program for tasks like formal verification of hardware and software, its own correctness and robustness is essential. Proof outputs are often required for such a verification software for correctness checking by third-party proof checkers. Testing techniques like assertions, fuzzing and regression tests are often employed in the development of such software. In the testing for MiniSatUP and cvc5 we also used such techniques.
@@ -16,6 +16,15 @@ The main fuzzer takes a CNF file as input, and splits the clauses into two parts
 
 %% fuzzing script
 A fuzzing script is written to generate random CNF files, run the fuzzer with the CNF file, and check model or the proof output of the fuzzer. We use CNFuzz \cite{BrummayerLonsingBiere-SAT10} to generate a CNF with a random seed, and DRUP checker \cite{6679408} to check the proof output in DRUP format. The check model part when result is SAT is implemented in the main fuzzer right after solving. We supported DRUP proof output to MiniSatUP to enable DRUP checking, which basically prints the clause to the proof file whenever a new clause is generated and an old clause is deleted. If the solve result is UNSAT, the DRUP checker checks the proof file against the original CNF file and report possible failures. The shell script is run continuously to uncover possibly more bugs.
+
+The architecture of main fuzzer along with the fuzzing workflow is shown in the figure \ref{fig:fuzzer}.
+
+\begin{figure}[h!]
+  \centering
+  \includesvg[width=0.3\textwidth]{fuzzer.drawio.svg}
+  \caption{Fuzzing workflow}
+  \label{fig:fuzzer}
+\end{figure}
 
 The main fuzzer contains around 300 lines of C++ code including parsing CNF file, where the \code{UserPropagator} class implementation takes around 150 lines of code. The fuzzing shell script contains around 50 lines of code.
 
@@ -37,39 +46,45 @@ Adding an external clause is first implemented by the fuzzer. On each interactio
     \quad false,false & 6 & 6 & 4 \\
     \quad\quad conflict & 1 & 0 & 2 \\
     \quad\quad propagation & 5 & 6 & 2 \\
-    \quad undef,false & 39 & 77 & 25 \\
-    \quad undef,undef & 2483 & 2666 & 1229 \\
+    \quad unassigned,false & 39 & 77 & 25 \\
+    \quad unassigned,unassigned & 2483 & 2666 & 1229 \\
     \quad true,false & 16 & 19 & 17 \\
     \quad\quad propagation & 6 & 7 & 8 \\
     \quad\quad no propagation & 10 & 12 & 9 \\
-    \quad true,undef & 636 & 826 & 364 \\
+    \quad true,unassigned & 636 & 826 & 364 \\
     \quad true,true & 322 & 415 & 189 \\
     \hline
-    \textbf{variable count} & 513 & 591 & 247 \\
-    \textbf{clause count} & 3956 & 4629 & 2699 \\
     \textbf{result} & SAT & UNSAT & UNSAT \\
+    \textbf{number of variables} & 513 & 591 & 247 \\
+    \textbf{number of clauses} & 3956 & 4629 & 2699 \\
     \hline
   \end{tabular}
-  \caption{statistics of cases hit adding external clause with different input}
+  \caption{Statistics of cases hit adding external clause with different input}
   \label{tab:stats}
 \end{table}
 
-\code{cb_check_found_model} is also implemented by checking if there are still clauses left to be added, and if all clauses are satisfied by current assignments.
+Even though some cases are not hit very often, like \code{unsat} or \code{conflict}, with a long period running of fuzzer on random inputs, all cases can still be tested with a reasonable amount of times.
+
+\code{cb_check_found_model} is also implemented by checking if there are still clauses left to be added. And a standalone full model check after solving is performed by the fuzzer, checking if all clauses are satisfied by current assignments.
 
 %% early bugs
 At this stage, a wrong assertion to a case of possible states for the 2-watching literals is discovered and fixed. And a bug in clause sorting predicate which leads to undesired order of the two watching literals is also found by an assertion error during fuzzing. Another issue related with the timing of connecting user propagator to the solver is discovered and fixed, where the clauses are added to the solver before connecting to user propagator and therefore some instant assignments from unit clauses are not informed to the user propagator leading to incorrect model. Batch notification of assignments is later implemented and more assertions on connecting user propagators are added.
 
-%% external propagation and lazy propagation
-Next, the lazy propagation interface is implemented. The \code{UserPropagator} checks if the next clause to be added actually leads to propagation based on the current notified assignments. When the clause only contains false literals but one unassigned literal, the implied literal is returned to the sat solver for propagation, while the clause is saved in a map indexed by the propagated literal and can be retrieved from the literal during lazy explaination. Other clauses are still added normally though the \code{cb_has_external_clause} and \code{cb_add_external_clause_lit} callbacks. When a backtrack happens, the entries in the map whose literals are unassigned will be removed from the map and added back to the set of remaining clauses.
+%% external propagation and lazy explanation
+Next, the external propagation and lazy explanation interface is implemented. The \code{UserPropagator} checks if the next clause to be added actually leads to propagation based on the current notified assignments. When the clause only contains false literals but one unassigned literal, the implied literal is returned to the sat solver for propagation, while the clause is saved in a map indexed by the propagated literal and can be retrieved from the literal during lazy explaination. Other clauses are still added normally though the \code{cb_has_external_clause} and \code{cb_add_external_clause_lit} callbacks. When a backtrack happens, the entries in the map whose literals are unassigned will be removed from the map and added back to the set of remaining clauses.
 
-The case when the propagated literal is a root-level unit was intentionally avoided in fuzzer initially, because the machanism of breaking the conflict analysis and re-propagate in the correct level was not yet invented. Still it is possible that a lazily added clause may introduce a lower actual level of the literal than its assigned leven, thus breaking the invariant of 2-watching scheme, but this case wouldn't cause error in the program, only possible performance issues. A map from literal to the level of its assignment is kept in fuzzer, so as to check if the next clause that generates a propagation is actually root-level propagation, and if so,
+The case when the propagated literal is a root-level unit was intentionally avoided in fuzzer initially, because the machanism of breaking the conflict analysis and re-propagate in the correct level was not yet invented. Still it is possible that a lazily added clause may introduce a lower actual level of the literal than its assigned leven, thus breaking the invariant of 2-watching scheme, but after testing this wouldn't introduce misbehaviour of the solver, only possible performance issues. A map from literal to the level of its assignment is kept in fuzzer, so as to check if the next clause that generates a propagation is actually root-level propagation, and if so, the clause is avoided and will be added through the interface of adding external clause.
+
+One bug related with the placeholder for the lazy clause is discovered through fuzzing after implementing external propagation. During clause set simplification in original MiniSat, a clause's storage space might be relocated, and all reason clauses can be affected. But for lazy reason clauses which exist still as a placeholder, there's no actual address, thus resulting in invalid memory access. A check is added here to avoid such accesses.
 
 % cvc5 make check and bugs after cvc5 integration
-This fuzzer has helped discovering bugs in MiniSatUP especially for adding external clauses and external propagations interfaces. But it doesn't cover the interfaces like decisions and assumptions, as implementing such interfaces are not straightforward without an actual user application. After integrated with cvc5, these interfaces are fully tested with a few more bugs discovered and fixed.
+This fuzzer has helped discovering bugs in MiniSatUP especially for adding external clauses and external propagations interfaces, but it doesn't cover the interfaces like decisions and assumptions, as implementing such interfaces are not straightforward without an actual user application. After building cvc5 linked with MiniSatUP, we ran \code{make check} command to perform the regression tests of cvc5, and several more bugs related with these interfaces from MiniSatUP has been discovered. Also a bug within cvc5 and a bug in CaDiCaL are discovered and fixed from comparison of test results.
 
-With thousands of the regression test cases from cvc5, which are still evolving along with the development, we are able to test cvc5 by running the \code{make check} command after building cvc5 integrated with MiniSatUP. And several more bugs from MiniSatUP has been discovered. Also a bug within cvc5 and a bug in CaDiCaL are discovered and fixed from comparison of test results.
+Before integration with cvc5, the compiler flag \code{-fsanitize=address} has also been enabled in MiniSatUP to prevent possible memory leaks, and during fuzzing and testing no memory leak has happened. This flag is removed during integration because it's not compatible with current cvc5 builds, and removing this flag causes a bug in the fuzzer to appear, where during external propagation \code{clauses.front()} is called without first checking if \code{clauses} are empty.
 
-Before integration with cvc5, the compiler flag \code{-fsanitize=address} has also been enabled in MiniSatUP to prevent possible memory leaks, and during fuzzing and testing no memory leak has happened. This flag is removed during integration because it's not compatible with current cvc5 builds, and removing this flag causes a bug in the fuzzer to appear, where during external propagation \code{clauses.front()} is called without first checking if \code{clauses} is empty.
+\todo{bugs: clear temp after solving, phase, is conflict,}
+
+A bug in cvc5 
 
 \todo{the cvc5 bug and the cadical bug}
 
