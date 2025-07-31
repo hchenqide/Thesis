@@ -52,7 +52,7 @@ The returning \code{bool} indicates whether UNSAT is produced by this clause (re
 
 The interaction with user propagator and adding an external clause is inserted into the original CDCL loop, as figure~\ref{fig:flow} shows.
 
-\begin{figure}
+\begin{figure}[h!]
   \centering
   \includesvg[width=\textwidth]{flow.drawio.svg}
   \caption{Original CDCL loop in MiniSat and updated CDCL loop}
@@ -119,7 +119,7 @@ After implementing MiniSatUP, we integrated it with cvc5 based on the existing c
 
 The architecture of cvc5 is shown in figure~\ref{fig:cvc5}, which has an internal MiniSat, and connects with CaDiCaL via IPASIR-UP interface.
 
-\begin{figure}
+\begin{figure}[h!]
   \centering
   \includesvg[width=0.5\textwidth]{cvc5.drawio.svg}
   \caption{Architecture of cvc5 with MiniSat and IPASIR-UP interface}
