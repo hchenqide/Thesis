@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0" version="28.0.7">
   <diagram name="Page-1" id="wYtTFpZ9ASJY-qu4CVdJ">
-    <mxGraphModel dx="1123" dy="621" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="786" dy="435" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -54,10 +54,10 @@
         <mxCell id="HVzZfGl38AdMBoZWMMSr-13" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;simplify&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
           <mxGeometry x="130" y="260" width="100" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="HVzZfGl38AdMBoZWMMSr-14" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;unsat&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+        <mxCell id="HVzZfGl38AdMBoZWMMSr-14" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;UNSAT&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
           <mxGeometry x="250" y="420" width="100" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="HVzZfGl38AdMBoZWMMSr-15" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;sat&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+        <mxCell id="HVzZfGl38AdMBoZWMMSr-15" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;SAT&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
           <mxGeometry x="130" y="420" width="100" height="40" as="geometry" />
         </mxCell>
         <mxCell id="HVzZfGl38AdMBoZWMMSr-16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="HVzZfGl38AdMBoZWMMSr-19" target="HVzZfGl38AdMBoZWMMSr-15" edge="1">
@@ -134,10 +134,10 @@
         <mxCell id="HVzZfGl38AdMBoZWMMSr-32" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;simplify&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
           <mxGeometry x="478" y="260" width="100" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="HVzZfGl38AdMBoZWMMSr-33" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;unsat&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+        <mxCell id="HVzZfGl38AdMBoZWMMSr-33" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;UNSAT&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
           <mxGeometry x="598" y="490" width="100" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="HVzZfGl38AdMBoZWMMSr-34" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;sat&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+        <mxCell id="HVzZfGl38AdMBoZWMMSr-34" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;SAT&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
           <mxGeometry x="478" y="490" width="100" height="40" as="geometry" />
         </mxCell>
         <mxCell id="HVzZfGl38AdMBoZWMMSr-35" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="HVzZfGl38AdMBoZWMMSr-38" target="HVzZfGl38AdMBoZWMMSr-34" edge="1">

@@ -29,13 +29,13 @@ The architecture of main fuzzer along with the fuzzing workflow is shown in the 
 The main fuzzer contains around 300 lines of C++ code including parsing CNF file, where the \code{UserPropagator} class implementation takes around 150 lines of code. The fuzzing shell script contains around 50 lines of code.
 
 %% external clause
-Adding an external clause is first implemented by the fuzzer. On each interaction, if there is a next external clause available and with a certain probability, the clause will be provided. We also inserted statistics and assertions on each case when adding an external clause, to ensures all cases when adding an external clauses is hit and tested, and to inspect any possible error. An example statistics table counting how many times each case is hit with a random input is shown in table \ref{tab:stats}.
+Adding an external clause is first implemented by the fuzzer. On each interaction, if there is a next external clause available and with a certain probability, the clause will be provided. We also inserted statistics and assertions on each case when adding an external clause, to ensures all cases when adding an external clauses is hit and tested, and to inspect any possible error. An example statistics table counting how many times each case is hit with random inputs is shown in table \ref{tab:stats}.
 
 \begin{table}[h!]
   \centering
   \begin{tabular}{|l|c|c|c|}
     \hline
-    & \multicolumn{3}{c|}{\textbf{input CNF with different seeds}} \\
+    & \multicolumn{3}{c|}{\textbf{input CNF with random seeds}} \\
     \cline{2-4}
     \textbf{cases adding external clause} & \textbf{675958302} & \textbf{872113057} & \textbf{367451228} \\
     \hline
@@ -59,7 +59,7 @@ Adding an external clause is first implemented by the fuzzer. On each interactio
     \textbf{number of clauses} & 3956 & 4629 & 2699 \\
     \hline
   \end{tabular}
-  \caption{Statistics of cases hit adding external clause with different input}
+  \caption{Statistics of cases hit adding external clause with different samples}
   \label{tab:stats}
 \end{table}
 
@@ -71,7 +71,7 @@ Even though some cases are not hit very often, like \code{unsat} or \code{confli
 At this stage, a wrong assertion to a case of possible states for the 2-watching literals is discovered and fixed. And a bug in clause sorting predicate which leads to undesired order of the two watching literals is also found by an assertion error during fuzzing. Another issue related with the timing of connecting user propagator to the solver is discovered and fixed, where the clauses are added to the solver before connecting to user propagator and therefore some instant assignments from unit clauses are not informed to the user propagator leading to incorrect model. Batch notification of assignments is later implemented and more assertions on connecting user propagators are added.
 
 %% external propagation and lazy explanation
-Next, the external propagation and lazy explanation interface is implemented. The \code{UserPropagator} checks if the next clause to be added actually leads to propagation based on the current notified assignments. When the clause only contains false literals but one unassigned literal, the implied literal is returned to the sat solver for propagation, while the clause is saved in a map indexed by the propagated literal and can be retrieved from the literal during lazy explaination. Other clauses are still added normally though the \code{cb_has_external_clause} and \code{cb_add_external_clause_lit} callbacks. When a backtrack happens, the entries in the map whose literals are unassigned will be removed from the map and added back to the set of remaining clauses.
+Next, the external propagation and lazy explanation interface is implemented. The \code{UserPropagator} checks if the next clause to be added actually leads to propagation based on the current notified assignments. When the clause only contains false literals but one unassigned literal, the implied literal is returned to the SAT solver for propagation, while the clause is saved in a map indexed by the propagated literal and can be retrieved from the literal during lazy explaination. Other clauses are still added normally though the \code{cb_has_external_clause} and \code{cb_add_external_clause_lit} callbacks. When a backtrack happens, the entries in the map whose literals are unassigned will be removed from the map and added back to the set of remaining clauses.
 
 The case when the propagated literal is a root-level unit was intentionally avoided in fuzzer initially, because the machanism of breaking the conflict analysis and re-propagate in the correct level was not yet invented. Still it is possible that a lazily added clause may introduce a lower actual level of the literal than its assigned leven, thus breaking the invariant of 2-watching scheme, but after testing this wouldn't introduce misbehaviour of the solver, only possible performance issues. A map from literal to the level of its assignment is kept in fuzzer, so as to check if the next clause that generates a propagation is actually root-level propagation, and if so, the clause is avoided and will be added through the interface of adding external clause.
 

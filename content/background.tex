@@ -18,7 +18,7 @@ Moreover, in many applications, SAT problems evolve over time. New clauses or va
 Most SAT solvers employ the Conflict-Driven Clause Learning (CDCL) algorithm to solve SAT problems. It iteratively assigns a chosen literal, does propagation, detects and analyzes conflicts to learn new clauses and backtracks to a previous decision level, and when no conflicts arise, decides on another literal to propagate and continues the loop. It returns UNSAT when a conflict happens at root level, and returns SAT if all variables find an assignment. In this approach, the solving progress are kept in learnt clauses, which also makes it possible for efficiently solving incremental SAT problems.
 
 % IPASIR
-The IPASIR interface (reversed acronym for "Re-entrant Incremental Satisfiability Application Program Interface") defines a universal API for incremental SAT solving and is the standard interface for the incremental track of many SAT competitions over the years. \cite{BALYO201645} It allows user to add clauses and new assumptions before each solver call, and retrieve value of literals from a satisfiable solution or failed assumptions from an unsatisfiable result, which, for most incremental solving tasks, is sufficient.
+The IPASIR interface (reversed acronym for "Re-entrant Incremental Satisfiability Application Program Interface") defines a universal API for incremental SAT solving and is the standard interface for the incremental track of many SAT competitions over the years. \cite{BALYO201645} It allows user to add clauses and new assumptions before each solver call, and retrieve value of literals from a satisfiable solution or failed assumptions from an unsatisfiable result, which is sufficient for some incremental solving tasks.
 
 % MiniSat
 MiniSat is a ``minimalistic, easy to modify and efficient open-source SAT solver''. It internally employes CDCL algorithm with 2-watching scheme, and it supports incremental solving with interfaces similar to IPASIR.
@@ -32,7 +32,7 @@ Even though there are currently other SAT solvers like CaDiCaL that outperforms 
 \section{IPASIR-UP Interface}
 
 % background
-In order to achieve a more fine-grained interaction between user applications and SAT solver, IPASIR-UP interface was introduced \cite{fazekas_et_al:LIPIcs.SAT.2023.8}. IPASIR-UP interface is an extension of IPASIR interface with user propagators. It allows more control over the solving process from the user with a set of callback functions, where the solver does it basic job on propagating and inprocessing, and the user can decide the next assignment, propagate units or raise conflicts in each CDCL loop. A recent version of cvc5 and the SAT Modulo Symmetries (SMS) framework utilize the IPASIR-UP interface for their integrations with CaDiCaL.
+In order to achieve a more fine-grained interaction between user applications and SAT solver, IPASIR-UP interface was introduced and improved \cite{fazekas_et_al:LIPIcs.SAT.2023.8}\cite{FazekasNiemetzPreinerKirchwegerSzeiderBiere-JAIR24}. IPASIR-UP interface is an extension of IPASIR interface with user propagators. It allows more control over the solving process from the user with a set of callback functions, where the solver does it basic job on propagating and inprocessing, and the user can decide the next assignment, propagate units or raise conflicts in each CDCL loop. It is not trivial to implement on a SAT solver, but it is possible, and it enables more user applications to cooperate with the SAT solver without application specific workarounds. A recent version of cvc5 and the SAT Modulo Symmetries (SMS) framework utilize the IPASIR-UP interface for their integrations with CaDiCaL.
 
 % description of functions
 The IPASIR-UP interface contains multiple callback functions in the form of virtual functions in C++, as the code below shows, which need to be inherited and implemented by the user applications and called by the SAT solver in different solving stages. The \code{cb_} prefix stands for \code{callback}.
@@ -83,7 +83,7 @@ They can be grouped grouped in the following way and simply explained:
     \end{itemize}
 \end{itemize}
 
-Several additional functions are also included in the interface which need to be implemented by the solver and are called by the user. They are:
+Several additional configuration functions are also included in the interface which need to be implemented by the solver and are called by the user. They are:
 
 \begin{lstlisting}
   void connect_user_propagator(UserPropagator *user_propagator);
@@ -103,7 +103,7 @@ And a short explaination of these functions is as follows:
     \item \code{connect_user_propagator}
     \item \code{disconnect_user_propagator}
   \end{itemize}
-  \item Add or remove observed variables. User can add observed variables to the sat solver whose assignments will be notified. Observed variables shouldn't be eliminated by the solver.
+  \item Add or remove observed variables. User can add observed variables to the SAT solver whose assignments will be notified. Observed variables shouldn't be eliminated by the solver.
   \begin{itemize}
     \item \code{add_observed_var}
     \item \code{remove_observed_var}
@@ -133,4 +133,4 @@ As a rival of z3, cvc5 is a state-of-the-art open-source SMT solver that support
 Internally, cvc5 integrates CDCL-based SAT engines, including  MiniSat, with a collection of dedicated theory solvers, where the SAT solvers handle the Boolean abstraction of the input formula, and theory solvers verify the consistency of theory-specific constraints. When a theory conflict is detected, the responsible theory solver generates an explanation in the form of a learned clause, which is fed back to the SAT solver to guide future search.
 
 %% integration with cadical through ipasirup
-The current version of cvc5 contains a highly customized MiniSat solver integrated as it default SAT engine which supports push/pop of assertion levels, production of resolution proofs and other tight interactions with theory, and is therefore hard to replace. Recently, CaDiCaL with IPASIR-UP interface is also implemented in cvc5 and can be selected by option \code{--sat-solver=cadical}. Even though this implementation is still lack of proof integration, it shows potential to be easily adapted to other sat solvers and promising performance outcomes without much optimizations.
+The current version of cvc5 contains a highly customized MiniSat solver integrated as it default SAT engine which supports push/pop of assertion levels, production of resolution proofs and other tight interactions with theory, and is therefore hard to replace. Recently, CaDiCaL with IPASIR-UP interface is also implemented in cvc5 and can be selected by option \code{--sat-solver=cadical}. Even though this implementation is still lack of proof integration, it shows potential to be easily adapted to other SAT solvers and promising performance outcomes without much optimizations.
