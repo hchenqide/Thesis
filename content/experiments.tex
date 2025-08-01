@@ -80,27 +80,31 @@ One bug related with the placeholder for the lazy clause is discovered through f
 % cvc5 make check and bugs after cvc5 integration
 This fuzzer has helped discovering bugs in MiniSatUP especially for adding external clauses and external propagations interfaces, but it doesn't cover the interfaces like decisions and assumptions, as implementing such interfaces are not straightforward without an actual user application. After building cvc5 linked with MiniSatUP, we ran \code{make check} command to perform the regression tests of cvc5, and several more bugs related with these interfaces from MiniSatUP has been discovered. Also a bug within cvc5 and a bug in CaDiCaL are discovered and fixed from comparison of test results.
 
-Before integration with cvc5, the compiler flag \code{-fsanitize=address} has also been enabled in MiniSatUP to prevent possible memory leaks, and during fuzzing and testing no memory leak has happened. This flag is removed during integration because it's not compatible with current cvc5 builds, and removing this flag causes a bug in the fuzzer to appear, where during external propagation \code{clauses.front()} is called without first checking if \code{clauses} are empty.
+Before integration with cvc5, the compiler flag \code{-fsanitize=address} has also been enabled in MiniSatUP to prevent possible memory leaks, and during fuzzing and testing no memory leak has happened. This flag is removed during integration because it's not compatible with current cvc5 builds, and removing this flag causes a bug in the fuzzer to show up, where during external propagation \code{clauses.front()} is called without first checking if \code{clauses} are empty.
 
-\todo{bugs: clear temp after solving, phase, is conflict,}
+Another error with unwanted memory access was identified due to the variable not allocated when adding a clause of assumption. We fixed it by ensuring every variable that occurred during clause or assumption addition is allocated. Observed variables are also ensured to be allocated.
 
-A bug in cvc5 
+When adding clauses before solving via the IPASIR interface, \code{add_tmp} in MiniSat is used for temporarily storing the current clause being added since the literals are provided one by one. This variable is also used when adding an external clause during solving, which only clears it before adding but not after. This caused a bug where a new clause contains literals from another previous external clause and led to wrong solving result. We fixed it by clearing \code{add_tmp} after solving. Such bugs could be potentially avoided by adding clauses as a whole without the need of \code{add_tmp}.
 
-\todo{the cvc5 bug and the cadical bug}
+A typo within \code{cb_decide} is found in MiniSatUP, where the returned decision literal is checked whether it is currently unassigned, and only selected when it is, otherwise the normal decision takes place. We used \code{lit} to keep the returned literal from \code{cb_decide}, and \code{l} to keep the literal converted to MiniSat literal type. But the original \code{lit} was passed as variable to get the current assignment in MiniSat, leading to memory access violation. Such bugs can be avoided by introducing stricter type convertion rules related with variables and literals.
 
-In a final running of \code{make check} of cvc5, an unfinished case is identified to be due to the missing implementation of \code{Terminator} from CaDiCaL interface, thus exhibiting different behavior as with CaDiCaL. But so far, the \code{make check} command still woundn't pass completely due to several unfinished cases that eventually timeout. These cases still need to be examined.
+Furthermore, we changed the logic of calling \code{cb_decide} by repeating it if current decision is already assigned, instead of going to the default decision making. And we also ensured that when there is no more unassigned varaibles, we wouldn't ask for another decision, otherwise there will be unexpected behavior from cvc5.
+
+The incorrect implementation of \code{phase} caused an error with one test case. Because of the unclarity of phase configuration in MiniSat, the plase is set as the opposite of the wanted phase of a variable and caused the solving not going as wanted, resulting in \code{unknown} output instead of \code{unsat}. It is fixed in MiniSatUP after analyzing the trace of this test case.
+
+A bug in cvc5 is identified due to an assertion error during regression test with MiniSatUP that affected many tests cases. We have analyzed the code of cvc5 and assumed that this error doesn't come from MiniSatUP. To verify our assumption, we constructed a minimal test case for cvc5 using CaDiCaL backend and reproduced the same assertoin error. It is due to a redundant re-notification of fixed variables after popping assertion level in cvc5. It happens rarely with CaDiCaL because CaDiCaL notifies fixed assignments eagerly one by one, even during clause addition, but MiniSatUP doesn't directly support notifying fixed assignments and fixed assignments are retrieved from batched notification of normal assignments, so with MiniSatUP these fixed assignments can get notified at a higher assertion level when the solving starts and need to be renotified after popping assertion level.
+
+In a final running of \code{make check} of cvc5, an unfinished case is identified to be due to the missing implementation of \code{Terminator} from CaDiCaL interface, thus exhibiting different behavior as with CaDiCaL. But so far, the \code{make check} command still woundn't pass completely due to several unfinished cases that eventually timeout. There are in total 5 timeouts and 4 errors among 4156 tests. These cases still need to be examined.
+
+We also performed cvc5 regression tests specifying SAT solver as CaDiCaL for a comparison, because cvc5 uses its internal MiniSat by default during builds and tests where CaDiCaL is not involved and thus not fully tested. There are 7 timeouts and 5 errors. One error due to a bug in CaDiCaL is identified and fixed. This error is related with the out-of-order assignment in CaDiCaL, where the \code{true, false} case of two watching literals when adding an external clause might also cause a reassignment of the actual level of the first literal when their levels are not equal. This doesn't happen with MiniSatUP because out-of-order assignments are not implemented on MiniSatUP yet.
+
+% \todo{tests need to be finally reperformed}
 
 % bug classificaiton by severity, difficulty to find/fix
-All bugs are listed in the table below as summarized:
-
-\todo{table of all bugs}
 
 \section{Performance Testing}
 
 % benchmarks
-
-We performed performance test on cvc5 with the dataset.
+We also conducted performance testing on cvc5 using MiniSatUP backend with several datasets. No discrepancy occurred.
 
 % result and comparison with cadical/minisat
-
-no discrepancy occurred
