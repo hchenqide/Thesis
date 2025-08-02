@@ -17,7 +17,7 @@ The main fuzzer takes a CNF file as input, and splits the clauses into two parts
 %% fuzzing script
 A fuzzing script is written to generate random CNF files, run the fuzzer with the CNF file, and check model or the proof output of the fuzzer. We use CNFuzz \cite{BrummayerLonsingBiere-SAT10} to generate a CNF with a random seed, and DRUP-checker \cite{6679408} to check the proof output in DRUP format. The check model part when result is SAT is implemented in the main fuzzer right after solving. We supported DRUP proof output to MiniSatUP to enable DRUP checking, which basically prints the clause to the proof file whenever a new clause is generated and an old clause is deleted. If the solve result is UNSAT, the DRUP-checker checks the proof file against the original CNF file and report possible failures. The shell script is run continuously to uncover possibly more bugs.
 
-The architecture of main fuzzer along with the fuzzing workflow is shown in the figure \ref{fig:fuzzer}.
+The architecture of main fuzzer along with the fuzzing workflow is shown in the figure~\ref{fig:fuzzer}.
 
 \begin{figure}[h!]
   \centering
@@ -29,7 +29,7 @@ The architecture of main fuzzer along with the fuzzing workflow is shown in the 
 The main fuzzer contains around 300 lines of C++ code including parsing CNF file, where the \code{UserPropagator} class implementation takes around 150 lines of code. The fuzzing shell script contains around 50 lines of code.
 
 %% external clause
-Adding an external clause is first implemented by the fuzzer. On each interaction, if there is a next external clause available and with a certain probability, the clause will be provided. We also inserted statistics and assertions on each case when adding an external clause, to ensures all cases are hit and tested, and to inspect any possible error. An example statistics table counting how many times each case is hit with random inputs is shown in table \ref{tab:stats}.
+Adding an external clause is first implemented by the fuzzer. On each interaction, if there is a next external clause available and with a certain probability, the clause will be provided. We also inserted statistics and assertions on each case when adding an external clause, to ensures all cases are hit and tested, and to inspect any possible error. An example statistics table counting how many times each case is hit with random inputs is shown in table~\ref{tab:stats}.
 
 \begin{table}[h!]
   \centering

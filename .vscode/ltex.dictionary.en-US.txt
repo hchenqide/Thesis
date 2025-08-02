@@ -3,6 +3,7 @@ IPASIR-UP
 UserPropagator
 CaDiCaL
 cadical
+CaDiCaL-specific
 MiniSat
 MiniSatUP
 minisatup

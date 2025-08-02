@@ -60,7 +60,7 @@ public:
 They can be grouped in the following way and simply explained:
 
 \begin{itemize}
-  \item Notify assignments, new decision levels and backtracks.
+  \item Notify assignments, new decision level and backtracking.
     \begin{itemize}
       \item \code{notify_assignment} Notifies user propagator a list of newly assigned literals on the current decision level, for the user propagator to perform external propagation, check model and raise possible conflict clauses. Therefore, the notification is not necessarily eager, but usually should be performed before other callbacks. Only the assignments of observed variables will be notified, and the observed variables can be set or removed.
       \item \code{notify_new_decision_level} Notifies user propagator a new decision level from the SAT solver, so that user propagator can store the current solving context and return to it when backtracking is performed.
