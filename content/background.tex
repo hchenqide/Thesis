@@ -6,7 +6,7 @@ This chapter provides a brief overview of the background on SAT and SMT solving,
 
 % SAT problem
 % SAT solver
-The Boolean Satisfiability Problem (SAT) is the problem of determining whether there exists an assignment of truth values to variables such that a given Boolean formula evaluates to true. It is the first problem proven to be NP-complete, making it foundational in computational complexity and automated reasoning. Despite this theoretical hardness, modern SAT solvers have become highly effective in solving many practical instances occurred in the fields such as hardware verification, model checking, and automated theorem proving by using a variety of preprocessing and inprocessing techniques and heuristics.
+The Boolean Satisfiability Problem (SAT) is the problem of determining whether there exists an assignment of truth values to variables such that a given Boolean formula evaluates to true. It is the first problem proven to be NP-complete, making it foundational in computational complexity and automated reasoning. Despite this theoretical hardness, modern SAT solvers have become highly effective in solving many practical instances occurred in the fields such as hardware verification, model checking, and automated theorem proving by using a variety of pre-processing and in-processing techniques and heuristics.
 
 % CNF
 In common practice, the Boolean formula is normalized in Conjunctive Normal Form (CNF) as input to the SAT solvers. A CNF formula is a conjunction (AND) of clauses, where each clause is a disjunction (OR) of literals. A literal is either a Boolean variable, indexed by positive integers, or its negation.
@@ -21,18 +21,18 @@ Most SAT solvers employ the Conflict-Driven Clause Learning (CDCL) algorithm to 
 The IPASIR interface (reversed acronym for "Re-entrant Incremental Satisfiability Application Program Interface") defines a universal API for incremental SAT solving and is the standard interface for the incremental track of many SAT competitions over the years. \cite{BALYO201645} It allows user to add clauses and new assumptions before each solver call, and retrieve value of literals from a satisfiable solution or failed assumptions from an unsatisfiable result, which is sufficient for some incremental solving tasks.
 
 % MiniSat
-MiniSat is a ``minimalistic, easy to modify and efficient open-source SAT solver''. It internally employes CDCL algorithm with 2-watching scheme, and it supports incremental solving with interfaces similar to IPASIR.
+MiniSat is a ``minimalistic, easy to modify and efficient open-source SAT solver''. It internally employs CDCL algorithm with 2-watching scheme, and it supports incremental solving with interfaces similar to IPASIR.
 
 % 2-waching scheme, trail and reason clause
 The 2-watching scheme makes it highly efficient to perform propagation, in which each clause is watched by two non-falsified literals, and if one watching literal is falsified during propagation, another must be found, or it leads to propagation or conflict. A \code{trail} is where all the assigned literals of each decision level are kept. And each assigned variable, if it's not from a unit clause, stores a reference to its reason clause for conflict analysis to trace back the literals that contribute to a conflict.
 
 % other SAT solvers
-Even though there are currently other SAT solvers like CaDiCaL that outperforms MiniSat in recent SAT competitions. MiniSat is still an ideal starting point for researching and experimenting new designs, for its efficiency and simpilicity. It is also integrated as a backend in many other applications, including SMT solvers like cvc5.
+Even though there are currently other SAT solvers like CaDiCaL that outperforms MiniSat in recent SAT competitions. MiniSat is still an ideal starting point for researching and experimenting new designs, for its efficiency and simplicity. It is also integrated as a backend in many other applications, including SMT solvers like cvc5.
 
 \section{IPASIR-UP Interface}
 
 % background
-In order to achieve a more fine-grained interaction between user applications and SAT solver, IPASIR-UP interface was introduced and improved \cite{fazekas_et_al:LIPIcs.SAT.2023.8}\cite{FazekasNiemetzPreinerKirchwegerSzeiderBiere-JAIR24}. IPASIR-UP interface is an extension of IPASIR interface with user propagators. It allows more control over the solving process from the user with a set of callback functions, where the solver does it basic job on propagating and inprocessing, and the user can decide the next assignment, propagate units or raise conflicts in each CDCL loop. It is not trivial to implement on a SAT solver, but it is possible, and it enables more user applications to cooperate with the SAT solver without application specific workarounds. A recent version of cvc5 and the SAT Modulo Symmetries (SMS) framework utilize the IPASIR-UP interface for their integrations with CaDiCaL.
+In order to achieve a more fine-grained interaction between user applications and SAT solver, IPASIR-UP interface was introduced and improved \cite{fazekas_et_al:LIPIcs.SAT.2023.8}\cite{FazekasNiemetzPreinerKirchwegerSzeiderBiere-JAIR24}. IPASIR-UP interface is an extension of IPASIR interface with user propagators. It allows more control over the solving process from the user with a set of callback functions, where the solver does it basic job on propagating and in-processing, and the user can decide the next assignment, propagate units or raise conflicts in each CDCL loop. It is not trivial to implement on a SAT solver, but it is possible, and it enables more user applications to cooperate with the SAT solver without application specific workarounds. A recent version of cvc5 and the SAT Modulo Symmetries (SMS) framework utilize the IPASIR-UP interface for their integrations with CaDiCaL.
 
 % description of functions
 The IPASIR-UP interface contains multiple callback functions in the form of virtual functions in C++, as the code below shows, which need to be inherited and implemented by the user applications and called by the SAT solver in different solving stages. The \code{cb_} prefix stands for \code{callback}.
@@ -57,14 +57,14 @@ public:
 };
 \end{lstlisting}
 
-They can be grouped grouped in the following way and simply explained:
+They can be grouped in the following way and simply explained:
 
 \begin{itemize}
   \item Notify assignments, new decision levels and backtracks.
     \begin{itemize}
-      \item \code{notify_assignment} Notifies user propagator a list of newly assigned literals on the current decision level, for the user propagator to perform external propagation, check model and raise possible conflict clauses. Therefore the notification is not necessarily eager, but usually should be performed before other callbacks. Only the assignments of observed variables will be notified, and the observed variables can be set or removed.
-      \item \code{notify_new_decision_level} Notifies user propagator a new decision level from the SAT solver, so that user propagator can store the current solving context and return back to it when backtracking is performed.
-      \item \code{notify_backtrack} Notifies user propagator that a backtrack to a specific decision level is initiated, for it to unassign variables which are assigned at higher levels and restore to the solving context of this level.
+      \item \code{notify_assignment} Notifies user propagator a list of newly assigned literals on the current decision level, for the user propagator to perform external propagation, check model and raise possible conflict clauses. Therefore, the notification is not necessarily eager, but usually should be performed before other callbacks. Only the assignments of observed variables will be notified, and the observed variables can be set or removed.
+      \item \code{notify_new_decision_level} Notifies user propagator a new decision level from the SAT solver, so that user propagator can store the current solving context and return to it when backtracking is performed.
+      \item \code{notify_backtrack} Notifies user propagator that a backtracking to a specific decision level is initiated, for it to unassign variables which are assigned at higher levels and restore to the solving context of this level.
     \end{itemize}
   \item Request external clauses.
     \begin{itemize}
@@ -73,13 +73,13 @@ They can be grouped grouped in the following way and simply explained:
     \end{itemize}
   \item Request external propagations and lazily add reason clauses.
     \begin{itemize}
-      \item \code{cb_propagate} Requests user propagator for a possible externally propagated literal, whose reason clause may be later requested by the next callback function \code{cb_add_reason_clause_lit}. User propagator returns 0 if there isn't any. Usually when a literal is assigned, we need to explain the assignment with a reason clause, which will be needed during conflict analysis. But considering that in practice usually not all reason clauses will be examined, so it could be more efficient that the reason is not provided to the solver immediately, but only when it is needed, to avoid uncessary clause processing and addition space for storing the clause, as well as the cost of generating the reason clause on the user application side.
+      \item \code{cb_propagate} Requests user propagator for a possible externally propagated literal, whose reason clause may be later requested by the next callback function \code{cb_add_reason_clause_lit}. User propagator returns 0 if there isn't any. Usually when a literal is assigned, we need to explain the assignment with a reason clause, which will be needed during conflict analysis. But considering that in practice usually not all reason clauses will be examined, so it could be more efficient that the reason is not provided to the solver immediately, but only when it is needed, to avoid unnecessary clause processing and addition space for storing the clause, as well as the cost of generating the reason clause on the user application side.
       \item \code{cb_add_reason_clause_lit} Gets the literals of the reason clause for an externally propagated literal one by one, terminating with 0. This is usually called while doing conflict analysis and the reason clause is to be lazily added. The clause will be non-forgettable.
     \end{itemize}
   \item Request next decision or a full model check.
     \begin{itemize}
       \item \code{cb_decide} Requests user propagator for the next decision literal. User propagator might have its own decision heuristics based on its context. If 0 is returned, then the solver makes the decision.
-      \item \code{cb_check_found_model} Asks user propagator for a full model check when all variables are assigned before solver returns SAT. If user propagator returns false, which means the model is not consistent, solver requests possible external propagations with \code{cb_propagate} and external clauses with \code{cb_has_external_clause} again. The user propagator must provide the conflict through either of the callbacks, and the solving loop will continue. Otherwise the solving finishes.
+      \item \code{cb_check_found_model} Asks user propagator for a full model check when all variables are assigned before solver returns SAT. If user propagator returns false, which means the model is not consistent, solver requests possible external propagations with \code{cb_propagate} and external clauses with \code{cb_has_external_clause} again. The user propagator must provide the conflict through either of the callbacks, and the solving loop will continue. Otherwise, the solving finishes.
     \end{itemize}
 \end{itemize}
 
@@ -95,7 +95,7 @@ Several additional configuration functions are also included in the interface wh
   void unphase(int lit);
 \end{lstlisting}
 
-And a short explaination of these functions is as follows:
+And a short explanation of these functions is as follows:
 
 \begin{itemize}
   \item Connect and disconnect user propagator. The user propagator is an object derived from and implementing \code{UserPropagator}. After connecting, the solver will be able to call the callback functions in the user propagator during solving. Only one user propagator can be connected at a time.
@@ -128,9 +128,9 @@ Satisfiability Modulo Theories (SMT) extends the Boolean Satisfiability Problem 
 SMT solvers are often built on top of SAT solvers, which specialize in solving the Boolean part of the SMT problems, like in z3 \cite{10.1007/978-3-540-78800-3_24}. Modern SMT solvers often rely on incremental SAT solving to interact with SAT solvers to refine a solution by adding more constraints from the knowledge of theory solvers.
 
 % cvc5
-As a rival of z3, cvc5 is a state-of-the-art open-source SMT solver that supports a broad range of theories \cite{10.1007/978-3-030-99524-9_24}. It is the successor to \code{cvc4} in the cvc (cooperating validity checker) family, and is designed for both research and industrial applications.
+As a rival of z3, cvc5 is a state-of-the-art open-source SMT solver that supports a broad range of theories \cite{10.1007/978-3-030-99524-9_24}. It is the successor to \code{cvc4} in the CVC (cooperating validity checker) family, and is designed for both research and industrial applications.
 
 Internally, cvc5 integrates CDCL-based SAT engines, including  MiniSat, with a collection of dedicated theory solvers, where the SAT solvers handle the Boolean abstraction of the input formula, and theory solvers verify the consistency of theory-specific constraints. When a theory conflict is detected, the responsible theory solver generates an explanation in the form of a learned clause, which is fed back to the SAT solver to guide future search.
 
 %% integration with cadical through ipasirup
-The current version of cvc5 contains a highly customized MiniSat solver integrated as it default SAT engine which supports push/pop of assertion levels, production of resolution proofs and other tight interactions with theory, and is therefore hard to replace. Recently, CaDiCaL with IPASIR-UP interface is also implemented in cvc5 and can be selected by option \code{--sat-solver=cadical}. Even though this implementation is still lack of proof integration, it shows potential to be easily adapted to other SAT solvers and promising performance outcomes without much optimizations.
+The current version of cvc5 contains a highly customized MiniSat solver integrated as it default SAT engine which supports push/pop of assertion levels, production of resolution proofs and other tight interactions with theory, and is therefore hard to replace. Recently, CaDiCaL with IPASIR-UP interface is also implemented in cvc5 and can be selected by option \code{--sat-solver=cadical}. Even though this implementation is still lack of proof integration, it shows potential to be easily adapted to other SAT solvers and promising performance outcomes without many optimizations.

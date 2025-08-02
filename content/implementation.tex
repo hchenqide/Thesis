@@ -5,9 +5,9 @@ This chapter provides a detailed account of the implementation of MiniSatUP (Min
 \section{Adaptation of MiniSat to IPASIR-UP}
 
 % overview and principle
-Adaptation of MiniSat to IPASIR-UP involves several steps. First, the IPASIR-UP interface is added to the header file and interaction with user propagator is inserted in the solving loop. Then, adding a clause provided by user propagator during solving is implemented. Finally, adding an externally propagated literal from user and lazy explaination of the literal is implemented.
+Adaptation of MiniSat to IPASIR-UP involves several steps. First, the IPASIR-UP interface is added to the header file and interaction with user propagator is inserted in the solving loop. Then, adding a clause provided by user propagator during solving is implemented. Finally, adding an externally propagated literal from user and lazy explanation of the literal is implemented.
 
-MiniSat contains \code{core} solver and \code{simp} solver. In addition to the core CDCL solving loop performed by \code{core} solver, \code{simp} solver performs subsumption and variable elimation. In this work, only the \code{core} solver is modifed. And the modification is made as minimum as possible, without altering the major control flow of the original code, so that the solver's original behaviour could be preserved while cleanly supporting the IPASIR-UP interface, enabling an easier inspection and comparison of the behaviour change introduced by the modification. In total, around 400 lines of code are added including comments, and only around 10 lines of original code are changed.
+MiniSat contains \code{core} solver and \code{simp} solver. In addition to the core CDCL solving loop performed by \code{core} solver, \code{simp} solver performs subsumption and variable elimination. In this work, only the \code{core} solver is modified. And the modification is made as minimum as possible, without altering the major control flow of the original code, so that the solver's original behavior could be preserved while cleanly supporting the IPASIR-UP interface, enabling an easier inspection and comparison of the behavior change introduced by the modification. In total, around 400 lines of code are added including comments, and only around 10 lines of original code are changed.
 
 % adding UserPropagator interface
 Firstly, the \code{UserPropagator} class declaration of the IPASIR-UP interface is added in the header file \code{Solver.h}, and the \code{user_propagator} member variable is added to \code{MiniSat::Solver}, which can be set by \code{connect_user_propagator} for the solver to interact with during solving. If \code{user_propagator} is not initialized, then the \code{Solver} behaves just like the original solver.
@@ -17,7 +17,7 @@ Firstly, the \code{UserPropagator} class declaration of the IPASIR-UP interface 
 If \code{user_propagator} is initialized in \code{Solver}, it will interact with the solver in each CDCL loop after propagation and possible conflict analysis, before the next decision is made. At the beginning of each interaction, the user propagator is synchronized of the current assignments and possible backtracks. An index on the trail up to which the assignments are notified is maintained for this purpose. Then the user propagator is requested of possible external propagations and external clauses.
 
 %% decision and check model
-When there are no such upropagationsnits or clauses, or there's no consequent change of control flow after adding them, the user propagator is requested of the next decision literal, if there are still unassigned variables. The new decision is taken and notified to user propagator while going to the next loop of propagation. Or the user propagator is requested to do a full model check before returning SAT if every variable is assigned, so that a new solver call could be avoided if there should still be inconsistence of model on the user side. And when the model check fails, the loop is continued and user propagator is responsible to provide new propagations or clauses to be taken into account.
+When there are no such propagations or clauses, or there's no consequent change of control flow after adding them, the user propagator is requested of the next decision literal, if there are still unassigned variables. The new decision is taken and notified to user propagator while going to the next loop of propagation. Or the user propagator is requested to do a full model check before returning SAT if every variable is assigned, so that a new solver call could be avoided if there should still be inconsistency of model on the user side. And when the model check fails, the loop is continued and user propagator is responsible to provide new propagations or clauses to be taken into account.
 
 % external clause addition during solving
 %% comparison with clause addition after solving
@@ -48,7 +48,7 @@ Method \code{bool add_clause_solving(vec<Lit>& clause, bool forgettable, CRef& c
 
 The input parameters \code {vec<Lit>& clause} and \code{bool forgettable} give the clause and tell whether it is forgettable. A forgettable clause is indicated by the user propagator when it provides a clause, and it can be removed during simplification of the clause set.
 
-The returning \code{bool} indicates whether UNSAT is produced by this clause (returning true when UNSAT, otherwise false). If propagation is needed, the literal to propagate is assigned and added to trail, the output parameter \code{bool& propagate} is set true, and the program goes to the next loop for propagation. And when conflict analysis is needed, \code{CRef& conflict} ist set as the current added clause, and the program goes to conflict analysis. When no propagation or conflict analysis is needed, none of the output parameters will be set, and the control flow goes further to check model or the next decision.
+The returning \code{bool} indicates whether UNSAT is produced by this clause (returning true when UNSAT, otherwise false). If propagation is needed, the literal to propagate is assigned and added to trail, the output parameter \code{bool& propagate} is set true, and the program goes to the next loop for propagation. And when conflict analysis is needed, \code{CRef& conflict} is set as the current added clause, and the program goes to conflict analysis. When no propagation or conflict analysis is needed, none of the output parameters will be set, and the control flow goes further to check model or the next decision.
 
 The interaction with user propagator and adding an external clause is inserted into the original CDCL loop, as figure~\ref{fig:flow} shows, where \code{interact} block handles notifying assignments, retrieving external clauses from user propagator and other callbacks, and \code{add} block adds a single external clause at one time which might cause different changes of control flow.
 
@@ -65,8 +65,8 @@ In order to make sure the new clause is added without breaking the existing 2-wa
 \begin{itemize}
   \item In decision level \code{l > 0}:
   \begin{itemize}
-    \item A propagating clause is watched by the propagated literal(assigned true) and another literal(assigned false), both assigned on level l.
-    \item A conflict clause is watched by two literals(both false) on level l.
+    \item A propagating clause is watched by the propagated literal (assigned true) and another literal (assigned false), both assigned on level l.
+    \item A conflict clause is watched by two literals (both false) on level l.
   \end{itemize}
   \item After backtracking to a lower level \code{k < l}:
   \begin{itemize}
@@ -75,11 +75,13 @@ In order to make sure the new clause is added without breaking the existing 2-wa
 \end{itemize}
 
 %% implementation
-The clause to be added is first sorted by its literals and their current levels in the following order, so that when the first two literals become watching literals of the current clause, the clause will be still watched correctly by the two literals after backtracking according to the invariant:
+The clause to be added is first sorted by its literals and their current levels in the following order, so that when the first two literals become watching literals of the current clause, the clause will be still watched correctly by the two literals after backtracking according to the invariant.
 
-true literals (level low - high) - unassigned literals - false literals (level high - low)
+\begin{center}
+  true literals (level low - high) - unassigned literals - false literals (level high - low)
+\end{center}
 
-Similar to clause addition after solving, the clause is also simplified by removing root-level false literals. And when the clause contains a root-level true literal, or it is a tautology, it is skipped and the funtion returns without any additional consequence, and the next clause is requested until there's no more external clauses by the user propagator.
+Similar to clause addition after solving, the clause is also simplified by removing root-level false literals. And when the clause contains a root-level true literal, or it is a tautology, it is skipped and the function returns without any additional consequence, and the next clause is requested until there's no more external clauses by the user propagator.
 
 When the clause contains only one literal, it is assigned true after backtracking to root level, and propagated. When the clause contains at least two literals, it is added to the clause set, and is watched by the first two literals after sorting. Depending on the assignment status of the 2 watching literals, there can be 6 cases, and their levels when being assigned can introduce more sub-cases. Each case leads to its own outcome:
 
@@ -96,14 +98,14 @@ When the clause contains only one literal, it is assigned true after backtrackin
   \item \code{true, true}: No further action.
 \end{itemize}
 
-When the clause causes a propagation, we always backtrack to the level of the second literal, and then assign the first literal on this level, so as to make sure the levels of assignment for the two watching literals are always the same. Backtracking just to redo an exisiting assignment on a different level can be inefficient, since all the effort of propagation is wasted. It is also possible to just change the level of assignment for a variable while keeping the trail unchanged, known as out-of-order assignment or chronological backtracking, but this is tricky and for the current implementation, not necessary.
+When the clause causes a propagation, we always backtrack to the level of the second literal, and then assign the first literal on this level, to make sure the levels of assignment for the two watching literals are always the same. Backtracking just to redo an existing assignment on a different level can be inefficient, since all the effort of propagation so far is wasted. It is also possible to just change the level of assignment for a variable while keeping the trail unchanged, which is known as out-of-order assignment or chronological backtracking, but this is tricky and for the current implementation, not yet necessary.
 
 % external propagation and lazy explaination
-In the last step of adapting MiniSat to IPASIR-UP, external propagation and lazy explaination of the externally propagated literal is supported. We inserted the callback function \code{cb_propagate} in the interaction code with user propagator to request propagated literals before requesting external clauses. The cooresponding variable of the literal will be assigned accordlingly with a tag \code{Clause_External} as a placeholder for its reason clause. If the literal is already assigned true, we skip it. And if it's already assigned false, which means that there is a hidden conflict, we get its reason clause immediately and add the clause reusing our previous function \code{add_clause_solving}.
+In the last step of adapting MiniSat to IPASIR-UP, external propagation and lazy explanation of the externally propagated literal is supported. We inserted the callback function \code{cb_propagate} in the interaction code with user propagator to request propagated literals before requesting external clauses. The corresponding variable of the literal will be assigned accordingly with a tag \code{Clause_External} as a placeholder for its reason clause. If the literal is already assigned true, we skip it. And if it's already assigned false, which means that there is a hidden conflict, we get its reason clause immediately and add the clause reusing our previous function \code{add_clause_solving}.
 
 During conflict analysis, reason clauses of assignments will be accessed for searching, and when a variable marked with \code{Clause_External} needs to be explained, we request the clause with callback \code{cb_add_reason_clause_lit} from user propagator. Like a clause being added during solving, a clause lazily added during conflict analysis is also sorted the same way and watched by the first two literals, though in this case it is either a root-level unit clause, or the first two watching literals are always true and false respectively, because the reason clause at this time should always be true with its only true literal being the literal to be explained.
 
-Adding a true clause during conflict analysis can also cause propagation to be re-performed on a lower decision level, similiar to the \code{unit} case and \code{true, false} case when adding an external clause. When the clause is a unit clause, a backtrack to root level is necessary. And when the watching literals of the clause are of different levels, it is also necessary to backtrack to the lower level and redo propagation so as to align their levels. The figure \ref{fig:analyze} shows the updated CDCL loop for adding a reason clause lazily during conflict analysis.
+Adding a true clause during conflict analysis can also cause propagation to be re-performed on a lower decision level, similar to the \code{unit} case and \code{true, false} case when adding an external clause. When the clause is a unit clause, a backtrack to root level is necessary. And when the watching literals of the clause are of different levels, it is also necessary to backtrack to the lower level and redo propagation to align their levels. The figure \ref{fig:analyze} shows the updated CDCL loop for adding a reason clause lazily during conflict analysis.
 
 \begin{figure}[h!]
   \centering
@@ -117,7 +119,7 @@ In order to achieve this without introducing many breaking changes for conflict 
 \section{Extension of cvc5 for integrating MiniSatUP}
 
 % overview
-After implementing MiniSatUP, we integrated it with cvc5 based on the existing cvc5 integration with CaDiCaL, where the full \code{UserPropagator} is implemented to handle the interaction between cvc5 theory solvers and the SAT solver via IPASIR-IP, and CaDiCaL is referenced as an external package. We copied the existing SAT solver class that implements IPASIR-UP for CaDiCaL, identified all functions it references the CaDiCaL solver, including those functions that are not part of IPASIR-UP, and adapted MiniSatUP further to support these functions.
+After implementing MiniSatUP, we integrated it with cvc5 based on the existing cvc5 integration with CaDiCaL, where the full \code{UserPropagator} is implemented to handle the interaction between cvc5 theory solvers and the SAT solver via IPASIR-UP, and CaDiCaL is referenced as an external package. We copied the existing SAT solver class that implements IPASIR-UP for CaDiCaL, identified all functions it references the CaDiCaL solver, including those functions that are not part of IPASIR-UP, and adapted MiniSatUP further to support these functions.
 
 The architecture of cvc5 is shown in figure~\ref{fig:cvc5}, which has an internal MiniSat, and connects with CaDiCaL via IPASIR-UP interface.
 
@@ -129,10 +131,10 @@ The architecture of cvc5 is shown in figure~\ref{fig:cvc5}, which has an interna
 \end{figure}
 
 % copy cadical.h
-In cvc5, we copied the existing \code{cadical.h} and \code{cadical.cpp}, which contain the implementation of IPASIR-UP, and created \code{minisatup.h} and \code{minisatup.cpp} for the integration. The symbols are renamed to \code{MiniSatUP} to distinguish from CaDiCaL. We didn't try to connect to and reuse the code directly because the IPASIR-UP interface in cvc5 is tightly bound with CaDiCaL with a lot of symbols named after CaDiCaL and a lot of CaDiCaL-specific procedures. An abstraction of the common interface for both CaDiCaL and MiniSatUP, and other possible SAT solvers that implement IPASIR-UP is still under design and development.
+In cvc5, we copied the existing \code{cadical.h} and \code{cadical.cpp}, which contain the implementation of IPASIR-UP, and created \code{minisatup.h} and \code{minisatup.cpp} for the integration. The symbols are renamed to \code{MiniSatUP} to distinguish from CaDiCaL. We didn't try to connect to and reuse the code directly because the IPASIR-UP interface in cvc5 is tightly bound with CaDiCaL with a lot of symbols named after CaDiCaL and a lot of CaDiCaL-specific procedures. An abstraction of the common interface for both CaDiCaL and MiniSatUP, and other possible SAT solvers that implement IPASIR-UP is still needed to be designed and developed.
 
 % other interface functions
-But a direct compilation and linking is not yet possible, because in this implementation of cvc5 integration of CaDiCaL, there are functions referenced from CaDiCaL solver that are not implemented by MiniSatUP. By a simple search in the code of all referenced functions, a list is created in minisatup.h, and these functions are later implemented in MiniSatUP as well. They include:
+Now a direct compilation and linking is not yet possible, because in this implementation of cvc5 integration of CaDiCaL, there are functions referenced from CaDiCaL solver that are not implemented by MiniSatUP. By a simple search in the code of all referenced functions, a list is created in minisatup.h, and these functions are later implemented in MiniSatUP as well. They include:
 
 \begin{itemize}
   \item IPASIR interface functions.
@@ -157,11 +159,11 @@ But a direct compilation and linking is not yet possible, because in this implem
     \item \code{void terminate()}: Terminate the solving process asynchronously. This sets a flag in solver and the solver checks the flag in every loop if there is a need to exit.
     \item \code{void connect_terminator(Terminator *terminator)}: The \code{Terminator} class contains only one callback function \code{virtual bool terminate()} that will be called synchronously by the solver to check if the solving process needs to terminate. This provides another way of terminating in addition to \code{void terminate()} which works asynchronously.
     \item \code{void connect_learner(Learner *learner)}: The \code{Learner} class contains a callback function \code{virtual void learn(int lit)} to notify the user about a learned clause after conflict analysis. The learned clause can be processed by the theory solvers to extract information that might help with solving.
-    \item \code{void connect_fixed_assignment_listener(FixedAssignmentListener *listener)}: The \code{FixedAssignmentListener} has one callback function \code{virtual void notify_fixed_assignment(int)}, where literals with fixed assignments are notified alone, in addition to \code{notify_assignment} in IPASIR-UP interface. This can be benificial with CaDiCaL which implements chronological backtracking, where the fixed assignments can be kept even after backtracking without having to renotify them again. In MiniSatUP this is not implemented as chronological backtracking is not supported yet.
+    \item \code{void connect_fixed_assignment_listener(FixedAssignmentListener *listener)}: The \code{FixedAssignmentListener} has one callback function \code{virtual void notify_fixed_assignment(int)}, where literals with fixed assignments are notified alone, in addition to \code{notify_assignment} in IPASIR-UP interface. This can be beneficial with CaDiCaL which implements chronological backtracking, where the fixed assignments can be kept even after backtracking without having to renotify them again. In MiniSatUP this is not implemented as chronological backtracking is not supported yet.
   \end{itemize}
 \end{itemize}
 
-During the process of implementing these additional interface functions, they are tested at the same time, first only with declaration without implementation, just to make sure they can be linked correctly. Then the functions are implemented only when errors occur, so that only the necessary functions are included, and the bahavioral change each function introduces can be analyzed. In the end, some functions are not implemented since they never get called or referenced, including some IPASIR-UP functions. And there are functions that are specific to CaDiCaL but still referenced in cvc5, which can potentially be included in the IPASIR-UP interface as well.
+During the process of implementing these additional interface functions, they are tested at the same time, first only with declaration without implementation, just to make sure they can be linked correctly. Then the functions are implemented only when errors occur, so that only the necessary functions are included, and the behavioral change each function introduces can be analyzed. In the end, some functions are not implemented since they never get called or referenced, including some IPASIR-UP functions. And there are functions that are specific to CaDiCaL but still referenced in cvc5, which can potentially be included in the IPASIR-UP interface as well.
 
 % linking minisatup in cvc5
-cvc5 is built with CMake and its dependencies are added through \code{find_package} command in CMake. We wrapped MiniSatUP in a CMake package for cvc5 to be able to reference and link with it. And we also added the option \code{--sat-solver=minisatup}, so that MiniSatUP can be selected by cvc5 along with its internal MiniSat and CaDiCaL.
+cvc5 is built with CMake and its dependencies are added through \code{find_package} command in CMake. We wrapped MiniSatUP in a CMake package for cvc5 to be able to reference and link with it. And option \code{--sat-solver=minisatup} is also supported, so that MiniSatUP can be selected by cvc5 along with its internal MiniSat and CaDiCaL.

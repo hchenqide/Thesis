@@ -1,0 +1,12 @@
+IPASIR
+IPASIR-UP
+UserPropagator
+CaDiCaL
+cadical
+MiniSat
+MiniSatUP
+minisatup
+UNSAT
+fuzzer
+CNFuzz
+DRUP
