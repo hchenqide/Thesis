@@ -43,16 +43,16 @@ Adding an external clause is first implemented by the fuzzer. On each interactio
     skipped & 57 & 0 & 34 \\
     unit & 2 & 5 & 4 \\
     two watching literals & 3502 & 4009 & 1828 \\
-    \quad false,false & 6 & 6 & 4 \\
+    \quad false, false & 6 & 6 & 4 \\
     \quad\quad conflict & 1 & 0 & 2 \\
     \quad\quad propagation & 5 & 6 & 2 \\
-    \quad unassigned,false & 39 & 77 & 25 \\
-    \quad unassigned,unassigned & 2483 & 2666 & 1229 \\
-    \quad true,false & 16 & 19 & 17 \\
+    \quad unassigned, false & 39 & 77 & 25 \\
+    \quad unassigned, unassigned & 2483 & 2666 & 1229 \\
+    \quad true, false & 16 & 19 & 17 \\
     \quad\quad propagation & 6 & 7 & 8 \\
     \quad\quad no propagation & 10 & 12 & 9 \\
-    \quad true,unassigned & 636 & 826 & 364 \\
-    \quad true,true & 322 & 415 & 189 \\
+    \quad true, unassigned & 636 & 826 & 364 \\
+    \quad true, true & 322 & 415 & 189 \\
     \hline
     \textbf{result} & SAT & UNSAT & UNSAT \\
     \textbf{number of variables} & 513 & 591 & 247 \\
@@ -68,6 +68,9 @@ Even though some cases are not hit very often, like \code{unsat} or \code{confli
 \code{cb_check_found_model} is also implemented by checking if there are still clauses left to be added. And a standalone full model check after solving is performed by the fuzzer, checking if all clauses are satisfied by current assignments.
 
 %% early bugs
+% bug: wrong assertion adding external clause
+% bug: error in clause sorting predicate
+% bug: wrong timing of connecting user propagator
 At this stage, a wrong assertion to a case of possible states for the 2-watching literals is discovered and fixed. And a bug in clause sorting predicate which leads to undesired order of the two watching literals is also found by an assertion error during fuzzing. Another issue related with the timing of connecting user propagator to the solver is discovered and fixed, where the clauses are added to the solver before connecting to user propagator and therefore some instant assignments from unit clauses are not informed to the user propagator leading to incorrect model. Batch notification of assignments is later implemented and more assertions on connecting user propagators are added.
 
 %% external propagation and lazy explanation
@@ -75,32 +78,66 @@ Next, the external propagation and lazy explanation interface is implemented. Th
 
 The case when the propagated literal is a root-level unit was intentionally avoided in fuzzer initially, because the mechanism of breaking the conflict analysis and re-propagate in the correct level was not yet invented. Still it is possible that a lazily added clause may introduce a lower actual level of the literal than its assigned level, thus breaking the invariant of 2-watching scheme, but after testing this wouldn't introduce misbehavior of the solver, only possible performance issues. A map from literal to the level of its assignment is kept in fuzzer, to check if the next clause that generates a propagation is actually root-level propagation, and if so, the clause is avoided and will be added through the interface of adding external clause.
 
+% bug: placeholder clause for lazy explanation
 One bug related with the placeholder for the lazy clause is discovered through fuzzing after implementing external propagation. During clause set simplification in original MiniSat, a clause's storage space might be relocated, and all reason clauses can be affected. But for lazy reason clauses which exist still as a placeholder, there's no actual address, thus resulting in invalid memory access. A check is added here to avoid such accesses.
 
 % cvc5 make check and bugs after cvc5 integration
 This fuzzer has helped to discover bugs in MiniSatUP especially for adding external clauses and external propagations interfaces, but it doesn't cover the interfaces like decisions and assumptions, as implementing such interfaces are not straightforward without an actual user application. After building cvc5 linked with MiniSatUP, we ran \code{make check} command to perform the regression tests of cvc5, and several more bugs related with these interfaces from MiniSatUP has been discovered. Also, a bug within cvc5 and a bug in CaDiCaL are discovered and fixed from comparison of test results.
 
+% bug: check \code{clauses.empty()} in fuzzer
 Before integration with cvc5, the compiler flag \code{-fsanitize=address} has also been enabled in MiniSatUP to prevent possible memory leaks, and during fuzzing and testing no memory leak has happened. This flag is removed during integration because it's not compatible with current cvc5 builds, and removing this flag causes a bug in the fuzzer to show up, where during external propagation \code{clauses.front()} is called without first checking if \code{clauses} are empty.
 
-Another error with unwanted memory access was identified due to the variable not allocated when adding a clause of assumption. We fixed it by ensuring every variable that occurred during clause or assumption addition is allocated. Observed variables are also ensured to be allocated.
+% bug: variable not allocated
+Another error with unwanted memory access was identified due to the variable not allocated when adding a clause or assumption. We fixed it by ensuring every variable that occurred during clause or assumption addition is allocated. Observed variables are also ensured to be allocated.
 
+% bug: \code{add_tmp} not cleared after solving
 When adding clauses before solving via the IPASIR interface, \code{add_tmp} in MiniSat is used for temporarily storing the current clause being added since the literals are provided one by one. This variable is also used when adding an external clause during solving, which only clears it before adding but not after. This caused a bug where a new clause contains literals from another previous external clause and led to wrong solving result. We fixed it by clearing \code{add_tmp} after solving. Such bugs could be potentially avoided by adding clauses as a whole without the need of \code{add_tmp}.
 
+% bug: typo in \code{cb_decide}
 A typo within \code{cb_decide} is found in MiniSatUP, where the returned decision literal is checked whether it is currently unassigned, and only selected when it is, otherwise the normal decision takes place. We used \code{lit} to keep the returned literal from \code{cb_decide}, and \code{l} to keep the literal converted to MiniSat literal type. But the original \code{lit} was passed as variable to get the current assignment in MiniSat, leading to memory access violation. Such bugs can be avoided by introducing stricter type conversion rules related with variables and literals.
 
 Furthermore, we changed the logic of calling \code{cb_decide} by repeating it if current decision is already assigned, instead of going to the default decision-making. And we also ensured that when there is no more unassigned variables, we wouldn't ask for another decision, otherwise there will be unexpected behavior from cvc5.
 
+% bug: setting \code{phase} incorrectly
 The incorrect implementation of \code{phase} caused an error with one test case. Because of the unclarity of phase configuration in MiniSat, the phase is set as the opposite of the wanted phase of a variable and caused the solving not going as wanted, resulting in \code{unknown} output instead of \code{unsat}. It is fixed in MiniSatUP after analyzing the trace of this test case.
 
+% bug: cvc5 re-notification of fixed assignments
 A bug in cvc5 is identified due to an assertion error during regression test with MiniSatUP that affected many tests cases. We have analyzed the code of cvc5 and assumed that this error doesn't come from MiniSatUP. To verify our assumption, we constructed a minimal test case for cvc5 using CaDiCaL backend and reproduced the same assertion error. It is due to a redundant re-notification of fixed variables after popping assertion level in cvc5. It rarely happens with CaDiCaL because CaDiCaL notifies fixed assignments eagerly one by one, even during clause addition, but MiniSatUP doesn't directly support notifying fixed assignments and fixed assignments are retrieved from batched notification of normal assignments, so with MiniSatUP these fixed assignments can get notified at a higher assertion level when the solving starts and need to be re-notified after popping assertion level.
 
+% bug: unimplemented \code{Terminator}
 In a final running of \code{make check} of cvc5, an unfinished case is identified to be due to the missing implementation of \code{Terminator} from CaDiCaL interface, thus exhibiting different behavior as with CaDiCaL. But so far, the \code{make check} command still wouldn't pass completely due to several unfinished cases that eventually timeout. There are in total 5 timeouts and 4 errors among 4156 tests. These cases still need to be examined.
 
+% bug: CaDiCaL missing out-of-order assignment
 We also performed cvc5 regression tests specifying SAT solver as CaDiCaL for a comparison, because cvc5 uses its internal MiniSat by default during builds and tests where CaDiCaL is not involved and thus not fully tested. There are 7 timeouts and 5 errors. One error due to a bug in CaDiCaL is identified and fixed. This error is related with the out-of-order assignment in CaDiCaL, where the \code{true, false} case of two watching literals when adding an external clause might also cause a reassignment of the actual level of the first literal when their levels are not equal. This doesn't happen with MiniSatUP because out-of-order assignments are not implemented on MiniSatUP yet.
 
 % \todo{tests need to be finally reperformed}
 
-% bug classificaiton by severity, difficulty to find/fix
+% bug classification by severity, difficulty to find/fix
+All bugs are summarized in the table~\ref{tab:bugs}.
+
+\begin{table}[h!]
+  \centering
+  \begin{tabular}{|l|c|c|c|}
+    \hline
+    \textbf{Bugs} & \textbf{Severity} & \makecell{\textbf{Difficulty} \\ \textbf{to find}} & \makecell{\textbf{Difficulty} \\ \textbf{to fix}} \\
+    \hline
+    wrong assertion adding external clause & low & easy & easy \\
+    error in clause sorting predicate & high & easy & easy \\
+    timing of connecting user propagator & high & hard & easy \\
+    placeholder clause for lazy explanation & medium & easy & medium \\
+    check \code{clauses.empty()} in fuzzer & high & medium & easy \\
+    variable not allocated & high & easy & easy \\
+    \code{add_tmp} not cleared after solving & high & hard & easy \\
+    typo in \code{cb_decide} & medium & medium & easy \\
+    setting \code{phase} incorrectly & low & hard & easy \\
+    unimplemented \code{Terminator} & low & medium & easy \\
+    cvc5 re-notification of fixed assignments & medium & hard & medium \\
+    CaDiCaL out-of-order assignment & high & medium & medium \\
+    \hline
+  \end{tabular}
+  \caption{Bugs during correctness testing}
+  \label{tab:bugs}
+\end{table}
 
 \section{Performance Testing}
 

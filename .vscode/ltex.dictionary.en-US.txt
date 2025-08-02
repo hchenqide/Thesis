@@ -11,3 +11,7 @@ UNSAT
 fuzzer
 CNFuzz
 DRUP
+cb
+CRef
+bool
+int
