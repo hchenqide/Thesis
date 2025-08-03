@@ -114,7 +114,7 @@ Adding a true clause during conflict analysis can also cause propagation to be r
   \label{fig:analyze}
 \end{figure}
 
-In order to achieve this without introducing many breaking changes for conflict analysis, we employ C++ exception to break from conflict analysis and raise the backtracking information expressed in a tuple of (destination level, propagating literal, reason clause reference). The analysis context, which stores the currently explored literals, will be cleared after catching the exception in the solving loop. With this trick, only 5 lines of code in \code{analyze} are changed, and 7 lines of code in the solving loop are added.
+In order to achieve this without introducing many breaking changes for conflict analysis, we employ \code{C++} exception to break from conflict analysis and raise the backtracking information expressed in a tuple of (destination level, propagating literal, reason clause reference). The analysis context, which stores the currently explored literals, will be cleared after catching the exception in the solving loop. With this trick, only 5 lines of code in \code{analyze} are changed, and 7 lines of code in the solving loop are added.
 
 \section{Extension of cvc5 for integrating MiniSatUP}
 

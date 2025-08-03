@@ -12,6 +12,56 @@
   abstract = {Boolean satisfiability (SAT) solving is one of the most competitive research areas of theoretical computer science. The performance of state-of-the-art SAT solvers has been continuously improving in the last decades and has reached a level where SAT solvers can be employed to solve real world problems in fields such as hardware and software verification, automated planning and many others. One of the important driving forces of this progress are the yearly organized (since 2002) SAT competitions. In this paper we describe the 2015 SAT Race that featured the traditional sequential and parallel tracks (with 64 core computers) and introduced the Incremental Library Track, which is particularly interesting for developers of SAT based applications. We describe the 2015 SAT Race and provide a detailed analysis of its results.}
 }
 
+@inproceedings{10.1007/978-3-540-24605-3_37,
+  author    = {E{\'e}n, Niklas
+               and S{\"o}rensson, Niklas},
+  editor    = {Giunchiglia, Enrico
+               and Tacchella, Armando},
+  title     = {An Extensible SAT-solver},
+  booktitle = {Theory and Applications of Satisfiability Testing},
+  year      = {2004},
+  publisher = {Springer Berlin Heidelberg},
+  address   = {Berlin, Heidelberg},
+  pages     = {502--518},
+  abstract  = {In this article, we present a small, complete, and efficient SAT-solver in the style of conflict-driven learning, as exemplified by Chaff. We aim to give sufficient details about implementation to enable the reader to construct his or her own solver in a very short time. This will allow users of SAT-solvers to make domain specific extensions or adaptions of current state-of-the-art SAT-techniques, to meet the needs of a particular application area. The presented solver is designed with this in mind, and includes among other things a mechanism for adding arbitrary boolean constraints. It also supports solving a series of related SAT-problems efficiently by an incremental SAT-interface.},
+  isbn      = {978-3-540-24605-3}
+}
+
+@inproceedings{BiereFallerFazekasFleuryFroleyks-CAV24,
+  author    = {Armin Biere and
+               Tobias Faller and
+               Katalin Fazekas and
+               Mathias Fleury and
+               Nils Froleyks and
+               Florian Pollitt},
+  editor    = {Arie Gurfinkel and
+               Vijay Ganesh},
+  title     = {{CaDiCaL 2.0}},
+  booktitle = {Computer Aided Verification - 36th International Conference, {CAV}
+               2024, Montreal, QC, Canada, July 24-27, 2024, Proceedings, Part {I}},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {14681},
+  pages     = {133--152},
+  publisher = {Springer},
+  year      = {2024},
+  doi       = {10.1007/978-3-031-65627-9\_7}
+}
+
+@inproceedings{10.1007/978-3-540-78800-3_24,
+  author    = {de Moura, Leonardo
+               and Bj{\o}rner, Nikolaj},
+  editor    = {Ramakrishnan, C. R.
+               and Rehof, Jakob},
+  title     = {Z3: An Efficient SMT Solver},
+  booktitle = {Tools and Algorithms for the Construction and Analysis of Systems},
+  year      = {2008},
+  publisher = {Springer Berlin Heidelberg},
+  address   = {Berlin, Heidelberg},
+  pages     = {337--340},
+  abstract  = {Satisfiability Modulo Theories (SMT) problem is a decision problem for logical first order formulas with respect to combinations of background theories such as: arithmetic, bit-vectors, arrays, and uninterpreted functions. Z3 is a new and efficient SMT Solver freely available from Microsoft Research. It is used in various software verification and analysis applications.},
+  isbn      = {978-3-540-78800-3}
+}
+
 @inproceedings{10.1007/978-3-030-99524-9_24,
   author    = {Barbosa, Haniel
                and Barrett, Clark
@@ -76,33 +126,6 @@
   doi     = {10.1613/JAIR.1.16163}
 }
 
-@inproceedings{10.1007/978-3-540-78800-3_24,
-  author    = {de Moura, Leonardo
-               and Bj{\o}rner, Nikolaj},
-  editor    = {Ramakrishnan, C. R.
-               and Rehof, Jakob},
-  title     = {Z3: An Efficient SMT Solver},
-  booktitle = {Tools and Algorithms for the Construction and Analysis of Systems},
-  year      = {2008},
-  publisher = {Springer Berlin Heidelberg},
-  address   = {Berlin, Heidelberg},
-  pages     = {337--340},
-  abstract  = {Satisfiability Modulo Theories (SMT) problem is a decision problem for logical first order formulas with respect to combinations of background theories such as: arithmetic, bit-vectors, arrays, and uninterpreted functions. Z3 is a new and efficient SMT Solver freely available from Microsoft Research. It is used in various software verification and analysis applications.},
-  isbn      = {978-3-540-78800-3}
-}
-
-@inproceedings{6679408,
-  author    = {Heule, Marijn J.H. and Hunt, Warren A. and Wetzler, Nathan},
-  booktitle = {2013 Formal Methods in Computer-Aided Design},
-  title     = {Trimming while checking clausal proofs},
-  year      = {2013},
-  volume    = {},
-  number    = {},
-  pages     = {181-188},
-  keywords  = {Optimization;Memory management;Cognition;Computational efficiency;Benchmark testing;Educational institutions},
-  doi       = {10.1109/FMCAD.2013.6679408}
-}
-
 @inproceedings{BrummayerLonsingBiere-SAT10,
   author    = {Robert Brummayer and
                Florian Lonsing and
@@ -116,4 +139,16 @@
   pages     = {44--57},
   publisher = {Springer},
   year      = {2010}
+}
+
+@inproceedings{6679408,
+  author    = {Heule, Marijn J.H. and Hunt, Warren A. and Wetzler, Nathan},
+  booktitle = {2013 Formal Methods in Computer-Aided Design},
+  title     = {Trimming while checking clausal proofs},
+  year      = {2013},
+  volume    = {},
+  number    = {},
+  pages     = {181-188},
+  keywords  = {Optimization;Memory management;Cognition;Computational efficiency;Benchmark testing;Educational institutions},
+  doi       = {10.1109/FMCAD.2013.6679408}
 }
