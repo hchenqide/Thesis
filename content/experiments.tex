@@ -15,11 +15,11 @@ Fuzzing is an automated testing technique that generates random and potentially 
 The main fuzzer takes a CNF file as input, and splits the clauses into two parts, with the first part given to the solver initially, and the rest added via IPASIR-UP interface. A \code{UserPropagator} implementing IPASIR-UP interfaces will be given to the solver via \code{connect_user_propagator} for it to interact with.
 
 %% fuzzing script
-A fuzzing script is written to generate random CNF files, run the fuzzer with the CNF file, and check model or the proof output of the fuzzer. We use CNFuzz \cite{BrummayerLonsingBiere-SAT10} to generate a CNF with a random seed, and DRUP-checker \cite{6679408} to check the proof output in DRUP format. The check model part when result is SAT is implemented in the main fuzzer right after solving. We supported DRUP proof output to MiniSatUP to enable DRUP checking, which basically prints the clause to the proof file whenever a new clause is generated and an old clause is deleted. If the solve result is UNSAT, the DRUP-checker checks the proof file against the original CNF file and report possible failures. The shell script is run continuously to uncover possibly more bugs.
+A fuzzing script is written to generate random CNF files, run the fuzzer with the CNF file, and check model or the proof output of the fuzzer. We use CNFuzz \cite{BrummayerLonsingBiere-SAT10} to generate a CNF with a random seed, and DRUP checker \cite{6679408} to check the proof output in DRUP format. The check model part when result is SAT is implemented in the main fuzzer right after solving. We supported DRUP proof output to MiniSatUP to enable DRUP checking, which basically prints the clause to the proof file whenever a new clause is generated and an old clause is deleted. If the solve result is UNSAT, the DRUP checker checks the proof file against the original CNF file and report possible failures. The shell script is run continuously to uncover possibly more bugs.
 
 The architecture of main fuzzer along with the fuzzing workflow is shown in the figure~\ref{fig:fuzzer}.
 
-\begin{figure}[h!]
+\begin{figure}[!htbp]
   \centering
   \includesvg[width=0.7\textwidth]{fuzzer.svg}
   \caption{Fuzzing workflow}
@@ -31,7 +31,7 @@ The main fuzzer contains around 300 lines of C++ code including parsing CNF file
 %% external clause
 Adding an external clause is first implemented by the fuzzer. On each interaction, if there is a next external clause available and with a certain probability, the clause will be provided. We also inserted statistics and assertions on each case when adding an external clause, to ensures all cases are hit and tested, and to inspect any possible error. An example statistics table counting how many times each case is hit with random inputs is shown in table~\ref{tab:stats}.
 
-\begin{table}[h!]
+\begin{table}[!htbp]
   \centering
   \begin{tabular}{|l|c|c|c|}
     \hline
@@ -115,7 +115,7 @@ We also performed cvc5 regression tests specifying SAT solver as CaDiCaL for a c
 % bug classification by severity, difficulty to find/fix
 All bugs are summarized in the table~\ref{tab:bugs}.
 
-\begin{table}[h!]
+\begin{table}[!htbp]
   \centering
   \begin{tabular}{|l|c|c|c|}
     \hline

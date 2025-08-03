@@ -52,7 +52,7 @@ The returning \code{bool} indicates whether UNSAT is produced by this clause (re
 
 The interaction with user propagator and adding an external clause is inserted into the original CDCL loop, as figure~\ref{fig:flow} shows, where \code{interact} block handles notifying assignments, retrieving external clauses from user propagator and other callbacks, and \code{add} block adds a single external clause at one time which might cause different changes of control flow.
 
-\begin{figure}[h!]
+\begin{figure}[!htbp]
   \centering
   \includesvg[width=\textwidth]{flow.svg}
   \caption{Original CDCL loop in MiniSat and updated CDCL loop}
@@ -107,7 +107,7 @@ During conflict analysis, reason clauses of assignments will be accessed for sea
 
 Adding a true clause during conflict analysis can also cause propagation to be re-performed on a lower decision level, similar to the \code{unit} case and \code{true, false} case when adding an external clause. When the clause is a unit clause, a backtracking to root level is necessary. And when the watching literals of the clause are of different levels, it is also necessary to backtrack to the lower level and redo propagation to align their levels. The figure~\ref{fig:analyze} shows the updated CDCL loop for adding a reason clause lazily during conflict analysis.
 
-\begin{figure}[h!]
+\begin{figure}[!htbp]
   \centering
   \includesvg[width=0.6\textwidth]{analyze.svg}
   \caption{Updated CDCL loop with clause addition during conflict analysis}
@@ -123,7 +123,7 @@ After implementing MiniSatUP, we integrated it with cvc5 based on the existing c
 
 The architecture of cvc5 is shown in figure~\ref{fig:cvc5}, which has an internal MiniSat tightly integrated as a CDCL SAT solver, and connects with CaDiCaL, which is referenced as an external package, via IPASIR-UP interface. MiniSatUP should be designed to reuse IPASIR-UP interface to connect to cvc5 alongside CaDiCaL.
 
-\begin{figure}[h!]
+\begin{figure}[!htbp]
   \centering
   \includesvg[width=0.5\textwidth]{cvc5.svg}
   \caption{Architecture of cvc5 with MiniSat and CaDiCaL through IPASIR-UP}
