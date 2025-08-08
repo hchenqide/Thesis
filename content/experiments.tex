@@ -17,7 +17,7 @@ The main fuzzer, written in \code{C++}, takes a CNF file from input, and splits 
 %% fuzzing script
 A fuzzing script is written to generate random CNF files, run the fuzzer with the CNF file, and check model or the proof output of the fuzzer. We use CNFuzz \cite{BrummayerLonsingBiere-SAT10} to generate a CNF with a random seed, and DRUP checker \cite{6679408} to check the proof output in DRUP format. We supported DRUP proof output in MiniSatUP to enable DRUP checking, which basically prints the added and deleted clauses to the proof file whenever a new clause is provided and an old clause is removed. If the solving result is UNSAT, the DRUP checker checks the proof file against the original CNF file and reports checking failures. A standalone model checker is implemented in the main fuzzer and checks model right after solving when the result is SAT. The shell script can be run continuously, and it stops when any error occurs.
 
-The workflow of the main fuzzer along with the fuzzing script is shown in the figure~\ref{fig:fuzzer}. The main fuzzer contains around 300 lines of \code{C++} code including parsing CNF file, where the \code{UserPropagator} class implementation takes around 150 lines of code. The fuzzing shell script contains around 50 lines of code.
+The workflow of the main fuzzer along with the fuzzing script is shown in Figure~\ref{fig:fuzzer}. The main fuzzer contains around 300 lines of \code{C++} code including parsing CNF file, where the \code{UserPropagator} class implementation takes around 150 lines of code. The fuzzing shell script contains around 50 lines of code.
 
 \begin{figure}[!htbp]
   \centering
@@ -29,7 +29,7 @@ The workflow of the main fuzzer along with the fuzzing script is shown in the fi
 %% external clause
 Adding an external clause is first implemented by the fuzzer. On each interaction, if there is a clause available, and with a certain probability, the clause will be provided to the solver and removed from the \code{UserPropagator}.
 
-We also inserted statistics and assertions on each case when adding an external clause in the solver, to ensure all cases are hit and tested with a fair amount of times, and to inspect any possible error. A table showing how many times each case is hit with some random inputs is shown below~\ref{tab:stats}.
+We also inserted statistics and assertions on each case when adding an external clause in the solver, to ensure all cases are hit and tested with a fair amount of times, and to inspect any possible error. Table~\ref{tab:stats} shows how many times each case is hit with some random inputs.
 
 \begin{table}[!htbp]
   \centering
@@ -111,7 +111,7 @@ In a final running of \code{make check} of cvc5, an unfinished case is identifie
 We also performed cvc5 regression tests specifying SAT solver as CaDiCaL for a comparison, because cvc5 uses its internal MiniSat by default during builds and tests where CaDiCaL is not involved and thus not fully tested. There are 7 timeouts and 5 errors occurred. One error due to a bug in CaDiCaL is identified and fixed. This error is related with the out-of-order assignment in CaDiCaL, where the \code{true, false} case of two watching literals when adding an external clause might also cause a reassignment of the actual level of the first literal when their levels are not equal. This doesn't happen with MiniSatUP because out-of-order assignments are not implemented yet.
 
 % bug classification by severity, difficulty to find/fix
-All bugs are summarized in the table~\ref{tab:bugs}. They are sorted by the stage when they are discovered, and assigned with severity and difficulty levels.
+All bugs are summarized in Table~\ref{tab:bugs}. They are sorted by the stage when they are discovered, and assigned with severity and difficulty levels.
 
 \begin{table}[!htbp]
   \centering

@@ -1,6 +1,6 @@
 \chapter{Implementation}
 
-This chapter provides a detailed account of the implementation of MiniSatUP (MiniSat with IPASIR-UP) and the extension of cvc5 for integrating with MiniSatUP.
+This chapter provides a detailed account of the implementation of our MiniSatUP (MiniSat with IPASIR-UP) and our extension of cvc5 for integrating with MiniSatUP.
 
 \section{Adaptation of MiniSat to IPASIR-UP}
 
@@ -46,11 +46,11 @@ A method \code{bool add_clause_solving(vec<Lit>& clause, bool forgettable, CRef&
     \end{itemize}
 \end{itemize}
 
-The input parameters \code {vec<Lit>& clause} and \code{bool forgettable} give the clause and tell whether it is forgettable. A forgettable clause is indicated by the user propagator when it provides a clause.
+The input parameters \code {vec<Lit>& clause} and \code{bool forgettable} give the clause and tell whether it is forgettable. A forgettable clause is indicated by the user propagator when it is provided, and it will be added to the clause database by MiniSat like a learnt clause, whose activity will be measured, and with a low activity, it can be removed in the next clause set reduction.
 
 The returning \code{bool} indicates whether UNSAT is produced by this clause (returning true when UNSAT, otherwise false). If propagation is needed, the literal to propagate is assigned and added to trail, the output parameter \code{bool& propagate} is set true, and the program goes to the next loop for propagation. And when conflict analysis is needed, \code{CRef& conflict} is set as the current added clause, and the program goes to conflict analysis. When no propagation or conflict analysis is needed, none of the output parameters will be set, and the control flow goes further to the next decision or model checking.
 
-The interaction with user propagator and adding an external clause is inserted into the original CDCL loop, as figure~\ref{fig:flow} shows, where \code{interact} block handles notifying assignments, retrieving external clauses from user propagator and other callbacks, and \code{add} block adds a single external clause at one time which might cause different changes of control flow.
+The interaction with user propagator and adding an external clause is inserted into the original CDCL loop, as Figure~\ref{fig:flow} shows, where \code{interact} block handles notifying assignments, retrieving external clauses from user propagator and other callbacks, and \code{add} block adds a single external clause at one time which might cause different changes of control flow.
 
 \begin{figure}[!htbp]
   \centering
@@ -89,11 +89,11 @@ When the clause contains only one unassigned literal after simplification, the l
   \item \code{false, false}: All literals in this clause are falsified so the clause a conflict. We check the levels of the watching literals (respectively a, b):
   \begin{itemize}
     \item \code{a = b}: This clause is a real conflict. We backtrack to level a/b and do conflict analysis on this level. Further backtracking and propagation will still be performed after conflict analysis.
-    \item \code{a > b}: This clause just needs propagation on level b.
+    \item \code{a > b}: This clause can be fixed by propagation on level b.
   \end{itemize}
-  \item \code{unassigned, false}: Also propagation.
+  \item \code{unassigned, false}: Propagation.
   \item \code{unassigned, unassigned}: No further action.
-  \item \code{true, false}: When \code{a > b}, do propagation, otherwise no further action.
+  \item \code{true, false}: When \code{a > b}, propagation, otherwise no further action.
   \item \code{true, unassigned}: No further action.
   \item \code{true, true}: No further action.
 \end{itemize}
@@ -105,7 +105,7 @@ In the last step of adapting MiniSat to IPASIR-UP, external propagation and lazy
 
 During conflict analysis, reason clauses of assignments will be accessed for searching, and when a variable marked with \code{Clause_External} needs to be explained, we request the clause with callback \code{cb_add_reason_clause_lit} from user propagator. Like a clause being added during solving, a clause lazily added during conflict analysis is also sorted the same way, though in this case it is either a root-level unit clause, or watched by the first two literals, which are always \code{true, false} respectively, because the reason clause at this time should always be true with its only true literal being the literal to be explained.
 
-Adding this true clause during conflict analysis can also cause propagation to be re-performed on a lower decision level, similar to the \code{unit} case and \code{true, false} case when adding an external clause. When the clause is a unit clause, a backtracking to root level is necessary, as long as chronological backtracking is not implemented. And when the watching literals of the clause are of different levels, it is also necessary to backtrack to the lower level and redo propagation to align their levels. Thus, a possible backtracking can break the current conflict analysis. The figure~\ref{fig:analyze} shows an updated CDCL loop for adding a reason clause lazily during conflict analysis which might cause backtracking and propagation.
+Adding this true clause during conflict analysis can also cause propagation to be re-performed on a lower decision level, similar to the \code{unit} case and \code{true, false} case when adding an external clause. When the clause is a unit clause, a backtracking to root level is necessary, as long as chronological backtracking is not implemented. And when the watching literals of the clause are of different levels, it is also necessary to backtrack to the lower level and redo propagation to align their levels. Thus, a possible backtracking can break the current conflict analysis. Figure~\ref{fig:analyze} shows an updated CDCL loop for adding a reason clause lazily during conflict analysis which might cause backtracking and propagation.
 
 \begin{figure}[!htbp]
   \centering
@@ -121,7 +121,7 @@ In order to achieve this without introducing many breaking changes for conflict 
 % overview
 After implementing MiniSatUP, we integrated it with cvc5 based on the existing cvc5 integration with CaDiCaL, where the \code{UserPropagator} is fully implemented to handle the interaction between cvc5 theory solvers and the SAT solver via IPASIR-UP. We copied the existing SAT solver class that implements IPASIR-UP for CaDiCaL, identified all functions it references the CaDiCaL solver, including those functions that are not part of IPASIR-UP but specific to CaDiCaL, and adapted MiniSatUP further to support these functions for a seamless integration.
 
-The architecture of cvc5 is shown in figure~\ref{fig:cvc5}. It has an internal MiniSat tightly integrated as a CDCL SAT solver, and it also connects with CaDiCaL, which is referenced as an external package, via IPASIR-UP interface. MiniSatUP should be designed to reuse IPASIR-UP interface to connect with cvc5 alongside CaDiCaL.
+The architecture of cvc5 is shown in Figure~\ref{fig:cvc5}. It has an internal MiniSat tightly integrated as a CDCL SAT solver, and it also connects with CaDiCaL, which is referenced as an external package, via IPASIR-UP interface. MiniSatUP should be designed to reuse IPASIR-UP interface to connect with cvc5 alongside CaDiCaL.
 
 \begin{figure}[!htbp]
   \centering
@@ -141,7 +141,7 @@ Now a direct compilation and linking is still not yet possible because of these 
   \begin{itemize}
     \item \code{void add(int lit)}: Add a literal to the current clause, ending with 0. If the corresponding variable of the literal is not created yet, create the variable first.
     \item \code{void assume(int lit)}: Add a literal to the current assumption list.
-    \item \code{int solve()}: Start solving. The assumptions will be cleared after solving. Return value 10, 20, 0 mean SAT, UNSAT and UNDEFINED respectively in accordance with CaDiCaL.
+    \item \code{int solve()}: Start solving. The assumptions will be cleared after solving. Return value 10, 20, 0 mean SAT, UNSAT and UNDEFINED respectively in accordance with IPASIR.
     \item \code{int val(int lit)}: Get the value of a literal from a SAT result. The return value is the literal if it's true, or the negation of the literal if it's false.
     \item \code{bool failed(int lit)}: Check if the literal as a part of the assumptions contributes to the final conflict clause of an UNSAT result.
   \end{itemize}
@@ -155,7 +155,7 @@ Now a direct compilation and linking is still not yet possible because of these 
   \end{itemize}
   \item CaDiCaL-specific interfaces:
   \begin{itemize}
-    \item \code{int fixed(int var)}: Check if the variable has a fixed assignment. A variable with fixed assignment is assigned on level 0. In CaDiCaL, where out-of-order assignment is supported, the variable could be assigned with actual level 0 but on a non-zero decision level. While in MiniSatUP, which doesn't support out-of-order assignment, it is always assigned on decision level 0 after backtracking.
+    \item \code{int fixed(int var)}: Check if the variable has a fixed assignment. A variable with fixed assignment is assigned on level 0. In CaDiCaL, which supports out-of-order assignment, the variable could be assigned with actual level 0 but on a non-zero decision level. While in MiniSatUP, which hasn't yet supported out-of-order assignment, it is always assigned on decision level 0 after backtracking.
     \item \code{void connect_listener(FixedAssignmentListener* listener)}: Add a fixed-assignment listener. \code{FixedAssignmentListener} has one callback function \code{virtual void notify_fixed_assignment(int)}, where fixed assignments are notified eagerly, in addition to \code{notify_assignment} in IPASIR-UP interface. This is a synchronous version for the function \code{int fixed(int var)}. It is called along with \code{notify_assignment} in MiniSatUP if current decision level is 0.
     \item \code{void connect_learner(Learner* learner)}: Connect a clause learner to the solver. A callback function \code{virtual void learn(int lit)} from the \code{Learner} class is for the solver to notify the user application about a learned clause generated from conflict analysis. The learned clause can be used to guide user applications, here in cvc5 the theory solvers, for further decision-makings.
     \item \code{void terminate()}: Terminate the solving process asynchronously. We set a flag in solver which the solver checks in every loop and exit if it is set.
