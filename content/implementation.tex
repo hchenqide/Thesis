@@ -89,7 +89,7 @@ When the clause contains only one unassigned literal after simplification, the l
   \item \code{false, false}: All literals in this clause are falsified so the clause a conflict. We check the levels of the watching literals (respectively a, b):
   \begin{itemize}
     \item \code{a = b}: This clause is a real conflict. We backtrack to level a/b and do conflict analysis on this level. Further backtracking and propagation will still be performed after conflict analysis.
-    \item \code{a > b}: This clause can be fixed by propagation on level b.
+    \item \code{a > b}: This clause is not a real conflict and can be fixed by propagation on level b.
   \end{itemize}
   \item \code{unassigned, false}: Propagation.
   \item \code{unassigned, unassigned}: No further action.
@@ -148,8 +148,8 @@ Now a direct compilation and linking is still not yet possible because of these 
   \item IPASIR-UP interfaces:
   \begin{itemize}
     \item \code{void connect_user_propagator(UserPropagator* propagator)}: As explained before, the \code{UserPropagator} is added to and referenced by the solver. cvc5 already has a full implementation of \code{UserPropagator}.
-    \item \code{void add_observed_var(int var)}: Make the variable observed. We didn't implement this but only ensured the variable is allocated, as there's already a filtering for active variables in cvc5. This can also be simply implemented with a set containing all observed variables, or a bit field in the data for each variable indicating if it's observed for filtering new assignments.
-    \item \code{void remove_observed_var(int var)}: Stop observing the variable. We didn't implement it either.
+    \item \code{void add_observed_var(int var)}: Set the variable as observed. We added another field \code{observed} in the \code{Solver} class as a bitmap for tracking if each variable is observed and filtering new assignments.
+    \item \code{void remove_observed_var(int var)}: Stop observing the variable.
     \item \code{bool is_decision(int lit)}: Check if the literal is a decision literal. A decision literal has assignment level larger than 0 an no reason clause.
     \item \code{void phase(int lit)}: Set the phase of a variable. In MiniSat it is referred to as \code{polarity}.
   \end{itemize}

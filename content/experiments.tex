@@ -63,7 +63,7 @@ We also inserted statistics and assertions on each case when adding an external 
   \label{tab:stats}
 \end{table}
 
-Even though some cases are not hit very often, like \code{unsat} or \code{conflict}, with a long period running of fuzzer on random inputs, all cases can still be tested with a reasonable amount of times.
+We can find from the table that some cases are not hit very often, like \code{unsat} or \code{conflict}, and when \code{unsat} is hit, the program stops immediately. But with a long period running of fuzzer on random inputs, all cases can still be tested with a reasonable amount of times.
 
 \code{cb_check_found_model} is also implemented by checking if there are still clauses left to be added. And a full model check is performed by the standalone model checker after solving, verifying if all clauses are satisfied by the current assignments.
 
@@ -71,15 +71,15 @@ Even though some cases are not hit very often, like \code{unsat} or \code{confli
 % bug: wrong assertion adding external clause
 % bug: error in clause sorting predicate
 % bug: wrong timing of connecting user propagator
-At this stage, a wrong assertion in a case of possible states for the 2-watching literals during adding external clause is first discovered and fixed. And a bug in clause sorting predicate which leads to undesired order of the two watching literals is also found by an assertion error during fuzzing. Another issue related with the timing of connecting user propagator to the solver is discovered and fixed, where the clauses are added to the solver before connecting to user propagator and therefore some instant assignments from unit clauses are not informed to the user propagator, leading to incorrect model. Batch notification of assignments is later implemented and more assertions on connecting user propagators are added.
+At this stage, we already found several bugs related with adding external clauses and connection with user propagator. We first ran into a wrong assertion in a case of possible states for the 2-watching literals during adding external clause and fixed it. And we also found a bug in the clause sorting predicate by an assertion error during fuzzing that leads to undesired order of the two watching literals. Another issue related with the timing of connecting user propagator to the solver is discovered and fixed, where the clauses are added to the solver before connecting to user propagator and therefore some instant assignments from unit clauses are not informed to the user propagator, leading to incorrect model. We later implemented batch notification of assignments and added more assertions on connecting user propagators.
 
 %% external propagation and lazy explanation
-Next, the external propagation and lazy explanation interface is implemented. The \code{UserPropagator} checks if the next clause to be added actually leads to propagation based on the current notified assignments. When the clause only contains false literals but one unassigned literal, the implied literal is returned to the SAT solver for propagation, while the clause is saved in a map indexed by the propagated literal and can be retrieved from the literal during lazy explanation. Other clauses are still added normally though the \code{cb_has_external_clause} and \code{cb_add_external_clause_lit} callbacks. When backtracking happens, the entries in the map whose literals are now unassigned will be removed from the map and added back to the set of remaining clauses.
+We updated the fuzzer after implementing the external propagation and lazy explanation interface. The \code{UserPropagator} now checks if the next clause to be added actually leads to propagation based on the current notified assignments. When the clause only contains false literals but one unassigned literal, the implied literal is returned to the SAT solver for propagation, while the clause is saved in a map indexed by the propagated literal and can be retrieved from the literal during lazy explanation. Other clauses are still added normally though the \code{cb_has_external_clause} and \code{cb_add_external_clause_lit} callbacks. When backtracking happens, the entries in the map whose literals are now unassigned will be removed from the map and added back to the set of remaining clauses.
 
-The case when the propagated literal is a root-level unit was intentionally avoided in fuzzer initially, because the mechanism of breaking the conflict analysis and re-propagate in the correct level was not yet implemented. A map from literal to the level of its assignment is kept in \code{UserPropagator}, to check if the propagation from the next clause is actually root-level, and if so, the clause is skipped and will be added through the interface of adding external clause. But still it is possible that a lazily added clause may introduce a lower actual level of an assigned literal than its current assignment level, thus breaking the invariant of 2-watching scheme, but after testing, it wouldn't introduce misbehavior of the solver, only possible performance issues. This is later fully resolved by the exception mechanism for breaking conflict analysis.
+We intentionally avoided the case when the propagated literal is a root-level unit in fuzzer initially, because the mechanism of breaking the conflict analysis and re-propagate in the correct level was not yet implemented. A map from literal to the level of its assignment is kept in \code{UserPropagator}, to check if the propagation from the next clause is actually root-level, and if so, the clause is skipped and will be added through the interface of adding external clause. But still it is possible that a lazily added clause may introduce a lower actual level of an assigned literal than its current assignment level, thus breaking the invariant of 2-watching scheme, but after testing, it wouldn't introduce misbehavior of the solver, only possible performance issues. This is later fully resolved by the exception mechanism for breaking conflict analysis.
 
 % bug: placeholder clause for lazy explanation
-One bug related with the placeholder for a lazy clause is discovered through fuzzing. During clause set simplification in original MiniSat, a clause's storage space might be relocated, and all reason clauses can be affected. But for lazy reason clauses which exist only as a placeholder, there's no actual address, thus resulting in invalid memory access. A check is added here to avoid this issue.
+One bug related with the placeholder for a lazy clause is discovered through fuzzing. During clause set simplification in original MiniSat, a clause's storage space might be relocated, and all reason clauses can be affected. But for lazy reason clauses which exist only as a placeholder, there's no actual address, thus resulting in invalid memory access. We added a check here to avoid this issue.
 
 % cvc5 make check and bugs after cvc5 integration
 So far, this fuzzer has helped to discover bugs in MiniSatUP especially for adding external clauses and external propagations interfaces, but it doesn't cover the interfaces like decisions and assumptions, as implementing such interfaces are not straightforward without an actual user application. After building and linking cvc5 with MiniSatUP, we ran \code{make check} command to perform the regression tests of cvc5, and several more bugs related with these interfaces from MiniSatUP has been discovered. Also, a bug within cvc5 and a bug from CaDiCaL are discovered by a comparison of the test results and they are both fixed.
@@ -102,7 +102,7 @@ Furthermore, we changed the logic of calling \code{cb_decide} by repeating it if
 An incorrect implementation of \code{phase} caused an error with one test case in cvc5. Because of the unclarity of phase configuration in MiniSat, the phase is set as the opposite of the wanted phase of a variable and caused the solving not going as wanted, resulting in \code{unknown} output instead of \code{unsat}. It is fixed in MiniSatUP after analyzing the trace of this test case along with the source code of cvc5.
 
 % bug: cvc5 re-notification of fixed assignments
-A bug in cvc5 is identified from an assertion error during regression test with MiniSatUP, which affected many tests cases. We have analyzed the code of cvc5 and assumed that this error doesn't come from MiniSatUP. To verify our assumption, we constructed a minimal test case for cvc5 using CaDiCaL backend and reproduced the same assertion error. It is due to a redundant re-notification of fixed assignments after popping assertion level in cvc5. It rarely happens with CaDiCaL because CaDiCaL notifies fixed assignments eagerly one by one, even during clause addition, but MiniSatUP notifies them lazily along with notification of normal assignments, so with MiniSatUP these fixed assignments can get notified at a higher assertion level when the solving starts and need to be re-notified after popping assertion level.
+We also identified a bug in cvc5 from an assertion error during regression test with MiniSatUP, which affected many tests cases. We have analyzed the code of cvc5 and assumed that this error doesn't come from MiniSatUP. To verify our assumption, we constructed a minimal test case for cvc5 using CaDiCaL backend and reproduced the same assertion error. It is due to a redundant re-notification of fixed assignments after popping assertion level in cvc5. It rarely happens with CaDiCaL because CaDiCaL notifies fixed assignments eagerly one by one, even during clause addition, but MiniSatUP notifies them lazily along with notification of normal assignments, so with MiniSatUP these fixed assignments can get notified at a higher assertion level when the solving starts and need to be re-notified after popping assertion level.
 
 % bug: unimplemented \code{Terminator}
 In a final running of \code{make check} of cvc5, an unfinished case is identified to be due to the missing implementation of \code{Terminator} from CaDiCaL interface, thus exhibiting different behavior as with CaDiCaL. It is added to MiniSatUP and implemented. But so far, the \code{make check} command still wouldn't pass completely due to several unfinished cases that eventually timeout. There are in total 5 timeouts and 4 errors among 4156 tests. These cases still need to be examined.
@@ -141,7 +141,44 @@ All bugs are summarized in Table~\ref{tab:bugs}. They are sorted by the stage wh
 
 \section{Performance Testing}
 
-% benchmarks
-We also conducted performance testing on cvc5 using MiniSatUP backend with several datasets. No discrepancy occurred.
+We also conducted performance testing on cvc5 using MiniSatUP backend with several datasets in comparison with the existing SAT solver integration of MiniSat and CaDiCaL in cvc5. The testing result is displayed in Table~\ref{tab:perf}.
 
-% result and comparison with cadical/minisat
+\begin{table}[!htbp]
+  \centering
+  \begin{tabular}{lrrrrrrrrrrrr}
+    \hline
+    Solver & cnt & ok & sat & uns & fld & to & real & time & space & max & best & uniq \\
+    \hline
+    CaDiCaL   & 1747 & 1667 & 991 & 676 & 80  & 80  & 43035 & 42534 & 177236 & 4832 & 1224 & 62 \\
+    MiniSat   & 1747 & 1613 & 959 & 654 & 134 & 134 & 63609 & 62909 & 139634 & 2929 & 663  & 1 \\
+    MiniSatUP & 1747 & 1601 & 950 & 651 & 146 & 146 & 62523 & 61828 & 126818 & 2835 & 539  & 0 \\
+    \hline
+  \end{tabular}
+  \caption{Performance testing result in comparison with MiniSat and CaDiCaL}
+  \label{tab:perf}
+\end{table}
+
+We can find that no discrepancy occurred in the testing, since all the failed cases are due to timeout. MiniSatUP has the most timeout cases, therefore solves fewer instances than both MiniSat and CaDiCaL. But the performance of MiniSatUP is very much close to MiniSat.
+
+Figure~\ref{fig:cdf} shows the number of solved cases by time. We can see there is nearly no observable difference between the performance of MiniSat and our MiniSatUP.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{plot.pdf}
+  \caption{Accumulated solved instances by time}
+  \label{fig:cdf}
+\end{figure}
+
+\section{Implementing Chronological Backtracking on MiniSatUP}
+
+% introduction
+
+% design
+
+% implementation
+
+% bugs
+
+% performance testing
+
+% summary
