@@ -141,24 +141,25 @@ All bugs are summarized in Table~\ref{tab:bugs}. They are sorted by the stage wh
 
 \section{Performance Testing}
 
-We also conducted performance testing on cvc5 using MiniSatUP backend with several datasets in comparison with the existing SAT solver integration of MiniSat and CaDiCaL in cvc5. The testing result is displayed in Table~\ref{tab:perf}.
+We conducted performance testing on cvc5 using MiniSatUP backend with several datasets in comparison with the existing SAT solver integration of MiniSat and CaDiCaL in cvc5. In addition, we implemented a version of chronological backtracking on MiniSatUP (MiniSatUP-Chrono) and tested its performance as well. The testing result is displayed in Table~\ref{tab:perf}.
 
 \begin{table}[!htbp]
   \centering
-  \begin{tabular}{lrrrrrrrrrrrr}
+  \begin{tabular}{lccccccc}
     \hline
-    Solver & cnt & ok & sat & uns & fld & to & real & time & space & max & best & uniq \\
+    Solver & solved & SAT & UNSAT & time & space & best & unique \\
     \hline
-    CaDiCaL   & 1747 & 1667 & 991 & 676 & 80  & 80  & 43035 & 42534 & 177236 & 4832 & 1224 & 62 \\
-    MiniSat   & 1747 & 1613 & 959 & 654 & 134 & 134 & 63609 & 62909 & 139634 & 2929 & 663  & 1 \\
-    MiniSatUP & 1747 & 1601 & 950 & 651 & 146 & 146 & 62523 & 61828 & 126818 & 2835 & 539  & 0 \\
+    CaDiCaL          & 1667 & 991 & 676 & 42534 & 4832 & 983 & 32 \\
+    MiniSatUP-Chrono & 1626 & 956 & 670 & 53540 & 2757 & 828 & 5 \\
+    MiniSat          & 1613 & 959 & 654 & 62909 & 2929 & 537 & 0 \\
+    MiniSatUP        & 1601 & 950 & 651 & 61828 & 2835 & 470 & 0 \\
     \hline
   \end{tabular}
   \caption{Performance testing result in comparison with MiniSat and CaDiCaL}
   \label{tab:perf}
 \end{table}
 
-We can find that no discrepancy occurred in the testing, since all the failed cases are due to timeout. MiniSatUP has the most timeout cases, therefore solves fewer instances than both MiniSat and CaDiCaL. But the performance of MiniSatUP is very much close to MiniSat.
+We found that no discrepancy occurred in the testing, since all failed cases are due to timeout. MiniSatUP has the most timeout cases, therefore solves fewer instances than both MiniSat and CaDiCaL, but the performance of MiniSatUP is very much close to MiniSat. MiniSatUP-Chrono performs better than MiniSat and MiniSatUP.
 
 Figure~\ref{fig:cdf} shows the number of solved cases by time. We can see there is nearly no observable difference between the performance of MiniSat and our MiniSatUP.
 
