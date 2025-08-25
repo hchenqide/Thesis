@@ -1,20 +1,20 @@
 \chapter{Implementation}
 
-This chapter provides a detailed account of the implementation of our MiniSatUP (MiniSat with IPASIR-UP) and our extension of cvc5 for integrating with MiniSatUP.
+This chapter provides a detailed account of the implementation of our MiniSatUP (MiniSat with IPASIR-UP) and the extension of cvc5 for integrating with MiniSatUP.
 
 \section{Adaptation of MiniSat to IPASIR-UP}
 
 % overview and principle
-We extended MiniSat with IPASIR-UP interface, and this adaptation involves several steps. First, the IPASIR-UP interface is added to the header file and interaction with user propagator is inserted in the CDCL solving loop. Then, adding a clause provided by user propagator during solving is supported. Finally, adding an externally propagated literal from user and lazily adding its reason clause is implemented.
+We extended MiniSat with IPASIR-UP interface in several steps. First, we added the IPASIR-UP interface class to the header file and inserted code for interaction with user propagator in the CDCL solving loop. Then, we implemented adding a clause provided by user propagator during solving. Finally, we supported adding an externally propagated literal from user and lazily adding its reason clause.
 
 MiniSat contains \code{core} solver and \code{simp} solver. In addition to the core CDCL solving loop performed by \code{core} solver, \code{simp} solver performs subsumption and variable elimination. In this work, only the \code{core} solver is modified, and the modification is made as minimum as possible, without altering the major control flow of the original code, so that the solver's original behavior could be preserved while cleanly supporting the IPASIR-UP interface, enabling an easier inspection and comparison of the behavior change introduced by the modification. In total, around 400 lines of code are added including comments, and only around 10 lines of original code are changed.
 
 % adding UserPropagator interface
-Firstly, the \code{UserPropagator} class declaration of the IPASIR-UP interface is added in the header file \code{Solver.h}, and the \code{user_propagator} member variable is added to \code{MiniSat::Solver}, which can be set by \code{connect_user_propagator} for the solver to interact with during solving. If \code{user_propagator} is not initialized, then the \code{Solver} behaves just like originally.
+Firstly, the \code{UserPropagator} class declaration of the IPASIR-UP interface is added in the header file \code{Solver.h}, and the \code{user_propagator} member variable is added to \code{MiniSat::Solver}, which can be set by \code{connect_user_propagator} for the solver to interact with during solving.
 
 % interaction within CDCL loop
 %% assignment and backtracking notification
-If \code{user_propagator} is initialized in \code{Solver}, it will interact with the solver in each CDCL loop after propagation and possible conflict analysis, and before the next decision is made. At the beginning of each interaction, the user propagator is notified of new assignments and possible backtracking. An index on the trail up to which the assignments are notified is maintained for this purpose. Then the user propagator is requested of possible external propagations and external clauses.
+If \code{user_propagator} is not initialized, the \code{Solver} behaves just like originally. And if \code{user_propagator} is initialized in \code{Solver}, it will interact with the solver in each CDCL loop after propagation and possible conflict analysis, and before the next decision is made. At the beginning of each interaction, the user propagator is notified of new assignments and possible backtracking. For this purpose, we maintain an index on the trail up to which the assignments are notified. Then the user propagator is requested of possible external propagations and external clauses.
 
 %% decision and check model
 When there are no such propagations or clauses, or there's no consequent change of control flow after adding them, the user propagator is requested of the next decision literal. The new decision is taken and notified to user propagator while going to the next loop of propagation. Or, when all variables are assigned, the user propagator is requested to do a full model check before the solver returns SAT, so that a new solver call could be avoided if there should still be inconsistency of model on the user application side. And when the model check fails, the loop is continued and user application is responsible to provide new propagations or clauses in the next callbacks. Though, this is not enforced and will result in an infinite loop, if user application doesn't provide a conflict even though its model checking keeps failing.
@@ -33,7 +33,7 @@ Secondly, adding a clause during solving is supported. Adding a clause during so
 But during solving, the literals in a clause can be assigned at different decision levels, and after addition of the clause, there might be more possible consequences that lead to different control flow changes in the current solving loop.
 
 %% interface description
-A method \code{bool add_clause_solving(vec<Lit>& clause, bool forgettable, CRef& conflict, bool& propagate)} is added in core \code{MiniSat::Solver}, dedicated to support clause addition during solving. This method handles all scenarios that might happen when a new clause is added during solving. These scenarios are:
+Method \code{bool add_clause_solving(vec<Lit>& clause, bool forgettable, CRef& conflict, bool& propagate)} is added in core \code{MiniSat::Solver}, dedicated to support clause addition during solving. This method handles all scenarios that might happen when a new clause is added during solving. These scenarios are:
 
 \begin{itemize}
   \item The clause is skipped.
@@ -83,7 +83,7 @@ The clause to be added is first sorted by its literals and their levels when ass
 
 Similar to clause addition after solving, the clause is also simplified by removing root-level false literals. And when the clause contains a root-level true literal, or it is a tautology, it is skipped and the function returns without any additional consequence, and the next clause is requested until there's no more external clauses from the user propagator.
 
-When the clause contains only one unassigned literal after simplification, the literal is assigned true after backtracking to root level, and propagated. When the clause contains at least two literals, it is added to the clause set, and is watched by the first two literals after being sorted. Depending on the assignment status of the 2 watching literals, there can be 6 cases, and their levels when being assigned can introduce more sub-cases. Each case leads to its own outcome:
+When the clause contains only one unassigned literal after simplification, the literal is assigned true after backtracking to root level, and propagated. When the clause contains at least two literals, it is added to the clause set, and is watched by the first two literals after being sorted. Depending on the assignment status of the 2 watching literals, there can be 6 cases, and their levels when being assigned can introduce more sub-cases. Each case is handled in a specific way:
 
 \begin{itemize}
   \item \code{false, false}: All literals in this clause are falsified so the clause a conflict. We check the levels of the watching literals (respectively a, b):
@@ -98,7 +98,7 @@ When the clause contains only one unassigned literal after simplification, the l
   \item \code{true, true}: No further action.
 \end{itemize}
 
-When the clause causes a propagation, we always backtrack to the level of the second literal, and then assign the first literal on this level, to make sure the levels of assignment for the two watching literals are always the same. Backtracking just to redo an existing assignment on a different level seems inefficient, since all the effort of propagation so far after this level is wasted. To address this problem, it is also possible to just change the level of assignment for a variable without backtracking and losing any existing assignments. This is known as out-of-order assignment or chronological backtracking, but it is tricky and for the current implementation of MiniSatUP, not yet necessary.
+When the clause causes a propagation, we always backtrack to the level of the second literal, and then assign the first literal on this level, to make sure the levels of assignment for the two watching literals are always the same. Backtracking just to redo an existing assignment on a different level seems inefficient, since all the effort of propagation so far after this level is wasted. To address this problem, it is also possible to just change the level of assignment for a variable without backtracking and losing any existing assignments. This is known as out-of-order assignment or chronological backtracking, but it is tricky and not necessary for our adaptation. We only implemented a version of it during performance testing, which has indeed shown some improvement in efficiency.
 
 % external propagation and lazy explaination
 In the last step of adapting MiniSat to IPASIR-UP, external propagation and lazy explanation of the externally propagated literal is supported. We inserted the callback function \code{cb_propagate} in the interaction code with user propagator to request propagated literals before requesting external clauses. The corresponding variable of the literal will be assigned accordingly with a tag \code{Clause_External} as a placeholder for its reason clause. If the literal is already assigned true, we skip it. And if it's already assigned false, which means that there is a hidden conflict, we get its reason clause immediately and add the clause reusing our previous function \code{add_clause_solving}.
@@ -114,7 +114,21 @@ Adding this true clause during conflict analysis can also cause propagation to b
   \label{fig:analyze}
 \end{figure}
 
-In order to achieve this without introducing many breaking changes for conflict analysis, we utilize \code{C++} exception to break from conflict analysis and raise the backtracking information expressed in a tuple of (destination level, propagating literal, reference to the reason clause), which will be retrieved and processed by the \code{catch} block in the solving loop, guiding further backtracking and propagation. The analysis context, which stores the currently explored literals, will also be cleared after catching the exception. With this trick, only 5 lines of code in \code{analyze} are changed, and 7 lines of code in the solving loop are added.
+In order to achieve this without introducing many breaking changes for conflict analysis, we utilize \code{C++} exception to break from conflict analysis and raise the backtracking information expressed in a tuple of (destination level, propagating literal, reference to the reason clause), which will be retrieved and processed by the \code{catch} block in the solving loop, guiding further backtracking and propagation. The analysis context, which stores the currently explored literals, will also be cleared after catching the exception. With this trick, only 5 lines of code in \code{analyze} are changed, and 10 lines of code in the solving loop are added. The updated code is shown below:
+
+\begin{lstlisting}
+  try {
+    analyze(conflict, learnt_clause, backtrack_level);
+  } catch (std::tuple<int, Lit, CRef> t) {
+    for (int i = 0; i < analyze_to_clear.size(); i++) {
+      seen[var(analyze_to_clear[i])] = 0;
+    }
+    auto [level, lit, c] = t;
+    cancelUntil(level);
+    uncheckedEnqueue(lit, c);
+    continue;
+  }
+\end{lstlisting}
 
 \section{Extension of cvc5 for integrating MiniSatUP}
 
@@ -157,9 +171,9 @@ Now a direct compilation and linking is still not yet possible because of these 
   \begin{itemize}
     \item \code{int fixed(int var)}: Check if the variable has a fixed assignment. A variable with fixed assignment is assigned on level 0. In CaDiCaL, which supports out-of-order assignment, the variable could be assigned with actual level 0 but on a non-zero decision level. While in MiniSatUP, which hasn't yet supported out-of-order assignment, it is always assigned on decision level 0 after backtracking.
     \item \code{void connect_listener(FixedAssignmentListener* listener)}: Add a fixed-assignment listener. \code{FixedAssignmentListener} has one callback function \code{virtual void notify_fixed_assignment(int)}, where fixed assignments are notified eagerly, in addition to \code{notify_assignment} in IPASIR-UP interface. This is a synchronous version for the function \code{int fixed(int var)}. It is called along with \code{notify_assignment} in MiniSatUP if current decision level is 0.
-    \item \code{void connect_learner(Learner* learner)}: Connect a clause learner to the solver. A callback function \code{virtual void learn(int lit)} from the \code{Learner} class is for the solver to notify the user application about a learned clause generated from conflict analysis. The learned clause can be used to guide user applications, here in cvc5 the theory solvers, for further decision-makings.
+    \item \code{void connect_learner(Learner* learner)}: Add a clause learner to the solver. A callback function \code{virtual void learn(int lit)} from the \code{Learner} class is for the solver to notify the user application about a learned clause generated from conflict analysis. The learned clause can be used to guide user applications, here in cvc5 the theory solvers, for further decision-makings. It is worth noting that in MiniSat, a learnt clause with low activities can be removed, but this removal is not notified to cvc5, which might leads to inefficiency or other unexpected behaviors.
     \item \code{void terminate()}: Terminate the solving process asynchronously. We set a flag in solver which the solver checks in every loop and exit if it is set.
-    \item \code{void connect_terminator(Terminator* terminator)}: Connect the \code{Terminator} to the solver. The \code{Terminate} class contains only one callback function \code{virtual bool terminate()} that will be called synchronously by the solver to check if it needs to terminate. This provides another way of terminating in addition to \code{void terminate()}.
+    \item \code{void connect_terminator(Terminator* terminator)}: Connect the \code{Terminator} to the solver. The \code{Terminator} class contains only one callback function \code{virtual bool terminate()} that will be called synchronously by the solver to check if it needs to terminate. This provides another way of terminating in addition to \code{void terminate()}.
   \end{itemize}
 \end{itemize}
 

@@ -1,11 +1,11 @@
 \chapter{Experiments}
 
-This chapter presents the experiments conducted on MiniSatUP and its integration with cvc5. We performed correctness testing by a fuzzer implemented for IPASIR-UP as well as cvc5 regression tests and fixed several bugs during development, and we also conducted performance testing on cvc5 after the integration, which demonstrates no measurable performance overhead with introducing IPASIR-UP.
+This chapter presents the experiments conducted on MiniSatUP and its integration with cvc5. We performed correctness testing by a fuzzer implemented for IPASIR-UP as well as cvc5 regression tests and fixed several bugs during development, and we also conducted performance testing on cvc5 after the integration, which demonstrates no measurable performance overhead with introducing IPASIR-UP. Furthermore, we implemented chronological backtracking on MiniSatUP which displayed improvement in performance and potential to replace the existing MiniSat in cvc5.
 
 \section{Correctness Testing}
 
 % overview
-In developing a program for tasks like formal verification of hardware and software, its own correctness and robustness is of vital importance. Testing techniques like asserting, fuzzing and regression testing are often employed in the development of such software. Proof outputs are also often required for a software in the field of formal verification to be checked by third-party proof checkers. For the testing of MiniSatUP and cvc5 we also used such techniques.
+In developing a program for tasks like formal verification of hardware and software, its own correctness and robustness is of vital importance. Testing techniques like asserting, fuzzing and regression testing are often employed in the development of such software. And proof outputs are usually required for a software in the field of formal verification to be checked by third-party proof checkers. For the testing of MiniSatUP and cvc5 we also used such techniques.
 
 % fuzzing
 Fuzzing is an automated testing technique that generates random and potentially adversarial input data to uncover bugs, crashes, or unexpected behavior in software. In this work, a fuzzer for the IPASIR-UP interface is developed during implementation of MiniSatUP before its integration in cvc5, to ensure the completeness of its functionality as well as its correctness.
@@ -17,7 +17,7 @@ The main fuzzer, written in \code{C++}, takes a CNF file from input, and splits 
 %% fuzzing script
 A fuzzing script is written to generate random CNF files, run the fuzzer with the CNF file, and check model or the proof output of the fuzzer. We use CNFuzz \cite{BrummayerLonsingBiere-SAT10} to generate a CNF with a random seed, and DRUP checker \cite{6679408} to check the proof output in DRUP format. We supported DRUP proof output in MiniSatUP to enable DRUP checking, which basically prints the added and deleted clauses to the proof file whenever a new clause is provided and an old clause is removed. If the solving result is UNSAT, the DRUP checker checks the proof file against the original CNF file and reports checking failures. A standalone model checker is implemented in the main fuzzer and checks model right after solving when the result is SAT. The shell script can be run continuously, and it stops when any error occurs.
 
-The workflow of the main fuzzer along with the fuzzing script is shown in Figure~\ref{fig:fuzzer}. The main fuzzer contains around 300 lines of \code{C++} code including parsing CNF file, where the \code{UserPropagator} class implementation takes around 150 lines of code. The fuzzing shell script contains around 50 lines of code.
+The workflow of the main fuzzer along with the fuzzing script is shown in Figure~\ref{fig:fuzzer}. The main fuzzer contains around 300 lines of \code{C++} code including parsing CNF file, where the \code{UserPropagator} class implementation takes around 150 lines of code. The fuzzing shell script contains around 30 lines of code.
 
 \begin{figure}[!htbp]
   \centering
@@ -141,7 +141,9 @@ All bugs are summarized in Table~\ref{tab:bugs}. They are sorted by the stage wh
 
 \section{Performance Testing}
 
-We conducted performance testing on cvc5 using MiniSatUP backend with several datasets in comparison with the existing SAT solver integration of MiniSat and CaDiCaL in cvc5. In addition, we implemented a version of chronological backtracking on MiniSatUP (MiniSatUP-Chrono) and tested its performance as well. The testing result is displayed in Table~\ref{tab:perf}.
+We conducted performance testing on cvc5 using MiniSatUP backend with several datasets in comparison with the existing SAT solver integration of MiniSat and CaDiCaL in cvc5. The testing result is displayed in Table~\ref{tab:perf}.
+
+In addition, we implemented a version of chronological backtracking on MiniSatUP (MiniSatUP-Chrono) and tested its performance as well, in which backtracking only to re-assign a literal on a lower level is avoided. We also have several additional optimizations, including selecting the first two literals instead of sorting the entire clause when adding. We choose not to explain the details of the implementation since it's still under development and needs further optimization, and it is not too much related to IPASIR-UP, the main topic of this thesis.
 
 \begin{table}[!htbp]
   \centering

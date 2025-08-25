@@ -21,7 +21,7 @@ Most SAT solvers employ the conflict-driven clause learning (CDCL) algorithm to 
 The IPASIR interface (reversed acronym for "Re-entrant Incremental Satisfiability Application Program Interface") defines a universal API for incremental SAT solving and is the standard interface for the incremental track of many SAT competitions over the years \cite{BALYO201645}. It allows user to add clauses and new assumptions before each solver call, and to retrieve value of literals from a satisfiable solution or failed assumptions from an unsatisfiable result, which is sufficient for some incremental solving tasks.
 
 % MiniSat
-MiniSat is a ``minimalistic, easy to modify and efficient open-source SAT solver'' \cite{10.1007/978-3-540-24605-3_37}. As a major step forward in modern SAT solving, it internally employs CDCL algorithm with 2-watching scheme, and it also supports incremental solving with interfaces similar to IPASIR.
+MiniSat is a ``minimalistic, easy to modify and efficient open-source SAT solver'' \cite{10.1007/978-3-540-24605-3_37}, which has remained top in several SAT competitions. As a major step forward in modern SAT solving, it internally employs CDCL algorithm with 2-watching scheme, and it also supports incremental solving with interfaces similar to IPASIR.
 
 % 2-waching scheme, trail and reason clause
 The 2-watching scheme makes it highly efficient to perform propagation by tracking clauses with only two non-falsified watching literals. If one watching literal becomes falsified during propagation, another must be found, or it leads to further propagations or a conflict. A \code{trail} is where all the assigned literals of each decision level are kept. And each assigned variable, if it's not from a unit clause or assigned as a decision, stores a reference to its reason clause for conflict analysis to trace back the assignments of literals that contribute to a conflict.
@@ -38,26 +38,26 @@ In order to achieve a more fine-grained interaction between user applications an
 The IPASIR-UP interface contains multiple callback functions in the form of virtual functions in \code{C++}, as the code below shows. These functions will be called by the SAT solver in different solving stages, and user applications can override all or some of them for customized interaction patterns. The \code{cb_} prefix stands for \code{callback}.
 
 \begin{lstlisting}
-class UserPropagator {
-public:
-  virtual ~UserPropagator() {};
+  class UserPropagator {
+  public:
+    virtual ~UserPropagator() {};
 
-  virtual void notify_assignment(const std::vector<int>& lits) {}
-  virtual void notify_new_decision_level() {}
-  virtual void notify_backtrack(size_t new_level) {}
+    virtual void notify_assignment(const std::vector<int>& lits) {}
+    virtual void notify_new_decision_level() {}
+    virtual void notify_backtrack(size_t new_level) {}
 
-  virtual int cb_decide() { return 0; }
-  virtual int cb_propagate() { return 0; }
-  virtual int cb_add_reason_clause_lit(int propagated_lit) { return 0; }
-  virtual bool cb_check_found_model(const std::vector<int>& model) {
-    return true;
-  }
+    virtual int cb_decide() { return 0; }
+    virtual int cb_propagate() { return 0; }
+    virtual int cb_add_reason_clause_lit(int lit) { return 0; }
+    virtual bool cb_check_found_model(const std::vector<int>& model) {
+      return true;
+    }
 
-  virtual bool cb_has_external_clause(bool& is_forgettable) {
-    return false;
-  }
-  virtual int cb_add_external_clause_lit() { return 0; }
-};
+    virtual bool cb_has_external_clause(bool& is_forgettable) {
+      return false;
+    }
+    virtual int cb_add_external_clause_lit() { return 0; }
+  };
 \end{lstlisting}
 
 They can be grouped and explained in the following way for a better understanding:
@@ -71,7 +71,7 @@ They can be grouped and explained in the following way for a better understandin
     \end{itemize}
   \item To request external clauses.
     \begin{itemize}
-      \item \code{cb_has_external_clause}: Requests user propagator for a possible external clause during solving, after notifying current assignments. If \code{true} is returned, which means there exists a clause to be added, then the next callback function \code{cb_add_external_clause_lit} is called. User application can mark an external clause as \code{forgettable}, allowing the solver to remove it like other learnt clauses when simplifying clause database.
+      \item \code{cb_has_external_clause}: Requests user propagator for a possible external clause during solving, after notifying current assignments. If \code{true} is returned, which means there exists a clause to be added, then the next callback function \code{cb_add_external_clause_lit} is called. User application can mark an external clause as \code{forgettable}, allowing the solver to remove it when simplifying clause database.
       \item \code{cb_add_external_clause_lit}: Gets the literals of the external clause one by one, terminating with 0.  
     \end{itemize}
   \item To request external propagations and lazily add reason clauses.
@@ -128,7 +128,7 @@ And a short explanation of these functions is as follows:
 Satisfiability Modulo Theories (SMT) extends the Boolean Satisfiability Problem (SAT) by adding the ability to reason over richer domains, such as integers, real numbers, arrays, bit-vectors, and uninterpreted functions. Instead of asking whether a Boolean formula is satisfiable, SMT asks whether a more general logical formula is satisfiable with respect to a given background theory in these domains.
 
 % SMT solver
-SMT solvers are often built on top of SAT solvers, which specialize in solving the Boolean part of the SMT problems, like in z3 \cite{10.1007/978-3-540-78800-3_24} and cvc5 \cite{10.1007/978-3-030-99524-9_24}. Modern SMT solvers often rely on incremental SAT solving to interact with SAT solvers to refine a solution by adding more constraints from the knowledge of theory solvers.
+SMT solvers, like z3 \cite{10.1007/978-3-540-78800-3_24} and cvc5 \cite{10.1007/978-3-030-99524-9_24}, are often built on top of SAT solvers, which specialize in solving the Boolean part of the SMT problems. Modern SMT solvers often rely on incremental SAT solving to interact with SAT solvers to refine a solution by adding more constraints from the knowledge of theory solvers.
 
 % cvc5
 As a rival of z3, cvc5 is a state-of-the-art open-source SMT solver that supports a broad range of theories. It is the successor to \code{CVC4} in the CVC (cooperating validity checker) family, and is designed for both research and industrial applications.
