@@ -60,26 +60,28 @@ The interaction with user propagator and adding an external clause is inserted i
 \end{figure}
 
 %% invariant of 2-watching scheme
-In order to make sure a new clause is added in compliance with the 2-watching scheme, an invariant across decisions and backtracking is established as following:
+In order to ensure a new clause is added in compliance with the 2-watching scheme, an invariant across decisions and backtracking is established as following:
 
 \begin{itemize}
   \item In decision level \code{l > 0}:
   \begin{itemize}
-    \item A propagating clause is watched by the propagated literal and another literal which are assigned \code{true, false} respectively but both on level l.
-    \item A conflict clause is watched by two literals both assigned false on level l.
+    \item A propagating clause is watched by the propagated literal and another literal which are assigned \code{true, false} respectively, both on level \code{l}.
+    \item A conflict clause is watched by two literals both assigned false and on level \code{l}.
   \end{itemize}
   \item After backtracking to a lower level \code{k < l}:
   \begin{itemize}
-    \item The propagating clause or conflict clause at level l is still watched by the same two literals, now both unassigned.
+    \item The propagating clause or conflict clause at level \code{l} is still watched by the same two literals, now both unassigned.
   \end{itemize}
 \end{itemize}
 
 %% implementation
-The clause to be added is first sorted by its literals and their levels when assigned in the following order, so that when the first two literals become watching literals of the current clause, the clause will still be watched correctly by the two literals after backtracking.
+In accordance with the invariant, the clause to be added is first sorted by its literals and their assignment levels in the following order:
 
 \begin{center}
-  true (level low - high) - unassigned - false (level high - low)
+  true (level low to high), unassigned, false (level high to low)
 \end{center}
+
+This ordering of literals when sorting a new clause ensures that when the first two literals become watching literals of the clause, it will still be watched correctly by the same two literals after backtracking. Actually, the order of leading true or unassigned literals doesn't have to be strict, as they will still remain true or unassigned after backtracking without causing new propagations. But assigning watching literals preferably as the true literals with the lowest levels can possibly avoid further looking for a true literal during propagation.
 
 Similar to clause addition after solving, the clause is also simplified by removing root-level false literals. And when the clause contains a root-level true literal, or it is a tautology, it is skipped and the function returns without any additional consequence, and the next clause is requested until there's no more external clauses from the user propagator.
 
@@ -171,13 +173,13 @@ Now a direct compilation and linking is still not yet possible because of these 
   \begin{itemize}
     \item \code{int fixed(int var)}: Check if the variable has a fixed assignment. A variable with fixed assignment is assigned on level 0. In CaDiCaL, which supports out-of-order assignment, the variable could be assigned with actual level 0 but on a non-zero decision level. While in MiniSatUP, which hasn't yet supported out-of-order assignment, it is always assigned on decision level 0 after backtracking.
     \item \code{void connect_listener(FixedAssignmentListener* listener)}: Add a fixed-assignment listener. \code{FixedAssignmentListener} has one callback function \code{virtual void notify_fixed_assignment(int)}, where fixed assignments are notified eagerly, in addition to \code{notify_assignment} in IPASIR-UP interface. This is a synchronous version for the function \code{int fixed(int var)}. It is called along with \code{notify_assignment} in MiniSatUP if current decision level is 0.
-    \item \code{void connect_learner(Learner* learner)}: Add a clause learner to the solver. A callback function \code{virtual void learn(int lit)} from the \code{Learner} class is for the solver to notify the user application about a learned clause generated from conflict analysis. The learned clause can be used to guide user applications, here in cvc5 the theory solvers, for further decision-makings. It is worth noting that in MiniSat, a learnt clause with low activities can be removed, but this removal is not notified to cvc5, which might leads to inefficiency or other unexpected behaviors.
+    \item \code{void connect_learner(Learner* learner)}: Add a clause learner to the solver. A callback function \code{virtual void learn(int lit)} from the \code{Learner} class is for the solver to notify the user application about a learned clause generated from conflict analysis. The learned clause can be used to guide user applications, here in cvc5 the theory solvers, for further decision-makings. It is to be noted that in MiniSat, a learnt clause with low activities can be later removed, but there is no interface yet for notifying this removal, and the handling mechanism of learnt clauses in cvc5 is not clear and dependent on plugins, which might lead to inefficiency or unexpected behaviors.
     \item \code{void terminate()}: Terminate the solving process asynchronously. We set a flag in solver which the solver checks in every loop and exit if it is set.
     \item \code{void connect_terminator(Terminator* terminator)}: Connect the \code{Terminator} to the solver. The \code{Terminator} class contains only one callback function \code{virtual bool terminate()} that will be called synchronously by the solver to check if it needs to terminate. This provides another way of terminating in addition to \code{void terminate()}.
   \end{itemize}
 \end{itemize}
 
-We added declarations of these interface functions first without implementing them, just to make sure they can be linked correctly with cvc5. Then the functions are implemented only when errors occur, and are tested immediately after each implementation, so that only the necessary functions are included, and the behavioral change that each function introduces can be analyzed and understood. In the end, some functions didn't get implemented since they are never called or referenced, including some functions in IPASIR-UP like \code{disconnect_user_propagator} and \code{unphase}.
+We added declarations of these interface functions first without implementing them, just to make sure they can be linked correctly with cvc5. Then the functions are implemented only when errors occur, and are tested immediately after each implementation, so that only the necessary functions are included, and the behavioral change that each function introduces can be analyzed and understood. In the end, some functions are never called or referenced, including functions in IPASIR-UP like \code{disconnect_user_propagator} and \code{unphase}.
 
 % linking minisatup in cvc5
-cvc5 is built with CMake and its external dependencies are added through command \code{find_package} in CMake. We wrapped MiniSatUP in a CMake package for cvc5 to be able to reference and link with it. And option \code{--sat-solver=minisatup} is also supported, so that MiniSatUP can be selected by cvc5 along with its internal MiniSat and CaDiCaL for parallel experimenting and testing.
+The cvc5 project is built with CMake and its external dependencies are added through command \code{find_package} in CMake. We wrapped MiniSatUP in a CMake package for cvc5 to be able to reference and link with it. Corresponding CMake scripts are also added in cvc5 for automatically downloading and building MiniSatUP from its source. And option \code{--sat-solver=minisatup} is also supported, so that MiniSatUP can be selected by cvc5 along with its internal MiniSat and CaDiCaL for parallel experimenting and testing.

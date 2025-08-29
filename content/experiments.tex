@@ -27,7 +27,7 @@ The workflow of the main fuzzer along with the fuzzing script is shown in Figure
 \end{figure}
 
 %% external clause
-Adding an external clause is first implemented by the fuzzer. On each interaction, if there is a clause available, and with a certain probability, the clause will be provided to the solver and removed from the \code{UserPropagator}.
+Adding an external clause is first implemented by the fuzzer. On each interaction, if there is a clause available, and with a certain probability, the clause will be provided to the solver and removed from the \code{UserPropagator}. Further clauses can be requested and provided right afterward, if the first clauses don't cause UNSAT, propagation or conflict analysis. And once the fuzzer chooses not to provide a clause, no more clauses will be requested in this interaction round.
 
 We also inserted statistics and assertions on each case when adding an external clause in the solver, to ensure all cases are hit and tested with a fair amount of times, and to inspect any possible error. Table~\ref{tab:stats} shows how many times each case is hit with some random inputs.
 
@@ -65,7 +65,7 @@ We also inserted statistics and assertions on each case when adding an external 
 
 We can find from the table that some cases are not hit very often, like \code{unsat} or \code{conflict}, and when \code{unsat} is hit, the program stops immediately. But with a long period running of fuzzer on random inputs, all cases can still be tested with a reasonable amount of times.
 
-\code{cb_check_found_model} is also implemented by checking if there are still clauses left to be added. And a full model check is performed by the standalone model checker after solving, verifying if all clauses are satisfied by the current assignments.
+Method \code{cb_check_found_model} in user propagator is also implemented by only checking if there are still clauses left to be added. And a final full model check is performed by the standalone model checker after solving, to verify if all clauses are satisfied by the model.
 
 %% early bugs
 % bug: wrong assertion adding external clause
@@ -108,7 +108,7 @@ We also identified a bug in cvc5 from an assertion error during regression test 
 In a final running of \code{make check} of cvc5, an unfinished case is identified to be due to the missing implementation of \code{Terminator} from CaDiCaL interface, thus exhibiting different behavior as with CaDiCaL. It is added to MiniSatUP and implemented. But so far, the \code{make check} command still wouldn't pass completely due to several unfinished cases that eventually timeout. There are in total 5 timeouts and 4 errors among 4156 tests. These cases still need to be examined.
 
 % bug: CaDiCaL missing out-of-order assignment
-We also performed cvc5 regression tests specifying SAT solver as CaDiCaL for a comparison, because cvc5 uses its internal MiniSat by default during builds and tests where CaDiCaL is not involved and thus not fully tested. There are 7 timeouts and 5 errors occurred. One error due to a bug in CaDiCaL is identified and fixed. This error is related with the out-of-order assignment in CaDiCaL, where the \code{true, false} case of two watching literals when adding an external clause might also cause a reassignment of the actual level of the first literal when their levels are not equal. This doesn't happen with MiniSatUP because out-of-order assignments are not implemented yet.
+We also performed cvc5 regression tests specifying SAT solver as CaDiCaL for a comparison, because cvc5 uses its internal MiniSat by default during builds and tests where CaDiCaL is not involved and thus not fully tested. There are 7 timeouts and 5 errors occurred. One error due to a bug in CaDiCaL is identified and fixed by Aina Niemetz, Mathias Preiner and Katalin Fazekas, the developers of cvc5 and CaDiCaL. This error is related with the out-of-order assignment in CaDiCaL, where the \code{true, false} case of two watching literals when adding an external clause might also cause a reassignment of the actual level of the first literal when their levels are not equal. This doesn't happen with MiniSatUP because out-of-order assignments are not implemented yet.
 
 % bug classification by severity, difficulty to find/fix
 All bugs are summarized in Table~\ref{tab:bugs}. They are sorted by the stage when they are discovered, and assigned with severity and difficulty levels.
@@ -168,6 +168,6 @@ Figure~\ref{fig:cdf} shows the number of solved cases by time. We can see there 
 \begin{figure}[h]
   \centering
   \includegraphics[width=\linewidth]{plot.pdf}
-  \caption{Accumulated solved instances by time}
+  \caption{Accumulated solved instances by time (x-axis: running time in seconds, y-axis: number of solved instances)}
   \label{fig:cdf}
 \end{figure}
