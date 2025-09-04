@@ -74,7 +74,7 @@ Method \code{cb_check_found_model} in user propagator is also implemented by onl
 At this stage, we already found several bugs related with adding external clauses and connection with user propagator. We first ran into a wrong assertion in a case of possible states for the 2-watching literals during adding external clause and fixed it. And we also found a bug in the clause sorting predicate by an assertion error during fuzzing that leads to undesired order of the two watching literals. Another issue related with the timing of connecting user propagator to the solver is discovered and fixed, where the clauses are added to the solver before connecting to user propagator and therefore some instant assignments from unit clauses are not informed to the user propagator, leading to incorrect model. We later implemented batch notification of assignments and added more assertions on connecting user propagators.
 
 %% external propagation and lazy explanation
-We updated the fuzzer after implementing the external propagation and lazy explanation interface. The \code{UserPropagator} now checks if the next clause to be added actually leads to propagation based on the current notified assignments. When the clause only contains false literals but one unassigned literal, the implied literal is returned to the SAT solver for propagation, while the clause is saved in a map indexed by the propagated literal and can be retrieved from the literal during lazy explanation. Other clauses are still added normally though the \code{cb_has_external_clause} and \code{cb_add_external_clause_lit} callbacks. When backtracking happens, the entries in the map whose literals are now unassigned will be removed from the map and added back to the set of remaining clauses.
+We updated the fuzzer after implementing the external propagation and lazy explanation interface. The \code{UserPropagator} now checks if the next clause to be added actually leads to propagation based on the current notified assignments. When the clause only contains false literals but one unassigned literal, the implied literal is returned to the SAT solver for propagation, while the clause is saved in a map indexed by the propagated literal, which will then be retrieved and removed from the map during lazy explanation of that literal. Other clauses are still added normally though the \code{cb_has_external_clause} and \code{cb_add_external_clause_lit} callbacks. When backtracking happens, the entries in the map whose literals have not been asked for explanation and now unassigned will be removed from the map and the clauses will be added back to the set of remaining clauses.
 
 We intentionally avoided the case when the propagated literal is a root-level unit in fuzzer initially, because the mechanism of breaking the conflict analysis and re-propagate in the correct level was not yet implemented. A map from literal to the level of its assignment is kept in \code{UserPropagator}, to check if the propagation from the next clause is actually root-level, and if so, the clause is skipped and will be added through the interface of adding external clause. But still it is possible that a lazily added clause may introduce a lower actual level of an assigned literal than its current assignment level, thus breaking the invariant of 2-watching scheme, but after testing, it wouldn't introduce misbehavior of the solver, only possible performance issues. This is later fully resolved by the exception mechanism for breaking conflict analysis.
 
@@ -141,9 +141,7 @@ All bugs are summarized in Table~\ref{tab:bugs}. They are sorted by the stage wh
 
 \section{Performance Testing}
 
-We conducted performance testing on cvc5 using MiniSatUP backend with several datasets in comparison with the existing SAT solver integration of MiniSat and CaDiCaL in cvc5. The testing result is displayed in Table~\ref{tab:perf}.
-
-In addition, we implemented a version of chronological backtracking on MiniSatUP (MiniSatUP-Chrono) and tested its performance as well, in which backtracking only to re-assign a literal on a lower level is avoided. We also have several additional optimizations, including selecting the first two literals instead of sorting the entire clause when adding. We choose not to explain the details of the implementation since it's still under development and needs further optimization, and it is not too much related to IPASIR-UP, the main topic of this thesis.
+We conducted performance testing on cvc5 using MiniSatUP backend with benchmark \code{QF_LRA} from SMT-LIB benchmark library \cite{https://doi.org/10.5281/zenodo.16740866}, along with the existing integration of MiniSat and CaDiCaL in cvc5. The result is displayed in Table~\ref{tab:perf}.
 
 \begin{table}[!htbp]
   \centering
@@ -157,17 +155,19 @@ In addition, we implemented a version of chronological backtracking on MiniSatUP
     MiniSatUP        & 1601 & 950 & 651 & 61828 & 2835 & 470 & 0 \\
     \hline
   \end{tabular}
-  \caption{Performance testing result in comparison with MiniSat and CaDiCaL}
+  \caption[Performance testing result]{Performance testing result in comparison with MiniSat and CaDiCaL (1747 benchmarks in total)}
   \label{tab:perf}
 \end{table}
 
-We found that no discrepancy occurred in the testing, since all failed cases are due to timeout. MiniSatUP has the most timeout cases, therefore solves fewer instances than both MiniSat and CaDiCaL, but the performance of MiniSatUP is very much close to MiniSat. MiniSatUP-Chrono performs better than MiniSat and MiniSatUP.
+In addition, we implemented a version of chronological backtracking on MiniSatUP (MiniSatUP-Chrono) which resembles the work of Florian Pollitt's \cite{Florian24}, and tested its performance as well. In the implementation, backtracking only to re-assign a literal on a lower level is avoided by directly updating the level and reason clause of the literal and propagating it again in a separate queue, with some corresponding modifications in order to maintain the trail for conflict analysis and during backtracking. We also did several additional optimizations, including selecting the first two literals instead of sorting the entire clause when adding.
+
+We found that no discrepancy occurred in the testing, since all failed cases are due to timeout. MiniSatUP has the most timeout cases, therefore solves fewer than both MiniSat and CaDiCaL, but its performance is very much close to MiniSat. MiniSatUP-Chrono performs better than MiniSat and MiniSatUP.
 
 Figure~\ref{fig:cdf} shows the number of solved cases by time. We can see there is nearly no observable difference between the performance of MiniSat and our MiniSatUP.
 
 \begin{figure}[h]
   \centering
-  \includegraphics[width=\linewidth]{plot.pdf}
-  \caption{Accumulated solved instances by time (x-axis: running time in seconds, y-axis: number of solved instances)}
+  \includegraphics[width=0.85\linewidth]{plot.pdf}
+  \caption[Accumulated solved instances]{Accumulated solved instances (x-axis: running time in seconds, y-axis: number of solved instances)}
   \label{fig:cdf}
 \end{figure}
