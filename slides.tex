@@ -1,5 +1,6 @@
 \documentclass{beamer}
 \usetheme{Madrid}
+\setbeamertemplate{bibliography item}{}
 
 \usepackage{listings}
 \newcommand*{\code}[1]{\lstinline[basicstyle=\ttfamily, breaklines]|#1|}
@@ -16,10 +17,11 @@
 \institute{University of Freiburg}
 \date{\today}
 
+
 \begin{document}
 
 \begin{frame}
-  \centering Master's Thesis
+  \centering \textit{Master's Thesis}
   \titlepage
   \centering {
     \small
@@ -35,27 +37,103 @@
   \tableofcontents
 \end{frame}
 
+
 \section{Introduction}
+
 \begin{frame}{Introduction}
   \begin{itemize}
     \item SAT solvers: key role in verification, model checking, and constraint solving
-    \item Need for incremental and interactive SAT solving
-    \item IPASIR and its limitations
-    \item Motivation for IPASIR-UP and MiniSatUP
-    \item Thesis structure overview
+    \item Modern applications require incremental and interactive SAT solving
+    \item IPASIR-UP enables tighter integration between SAT solvers and applications
+    \item This thesis: MiniSatUP (IPASIR-UP for MiniSat) and its integration with SMT solver cvc5
   \end{itemize}
 \end{frame}
 
+
 \section{Background and Related Work}
-\begin{frame}{Background and Related Work}
+
+\begin{frame}{SAT Solvers: Overview}
   \begin{itemize}
-    \item SAT and SMT: definitions and applications
-    \item CDCL algorithm and 2-watching scheme
-    \item MiniSat and its features
-    \item IPASIR and IPASIR-UP interfaces
-    \item cvc5 and integration with SAT solvers
+    \item SAT: Is there an assignment making a Boolean formula true?
+    \item First NP-complete problem; foundational in complexity theory
+    \item Modern SAT solvers: highly effective for practical instances
+    \item Applications: hardware verification, model checking, theorem proving
   \end{itemize}
 \end{frame}
+
+\begin{frame}{SAT Solvers: CNF, Incremental, CDCL}
+  \begin{itemize}
+    \item Input: formulas in Conjunctive Normal Form (CNF)
+    \item Incremental solving: add clauses/assumptions over time, retain learned info
+    \item CDCL (Conflict-Driven Clause Learning):
+    \begin{itemize}
+      \item Assign literals, propagate, analyze conflicts, learn clauses, backtrack
+      \item Enables efficient incremental solving
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{MiniSat and 2-Watching Scheme}
+  \begin{itemize}
+    \item MiniSat: minimalistic, efficient, open-source SAT solver
+    \item Employs CDCL with 2-watching scheme for propagation
+    \item 2-watching: track two non-falsified literals per clause for fast propagation
+    \item Trail storing assignments per decision level; reason clauses kept for conflict analysis
+    \item Still widely used for research and as backend (e.g., cvc5)
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{IPASIR and IPASIR-UP Interfaces}
+  \begin{itemize}
+    \item IPASIR: standard API for incremental SAT solving (SAT competitions)
+    \item Allows adding clauses/assumptions, retrieving solutions or failed assumptions
+    \item IPASIR-UP: extends IPASIR with user propagators and callbacks
+    \item Enables fine-grained interaction: external propagation, clause addition, decisions
+    \item Implemented in CaDiCaL
+    \item Used in cvc5 and SAT Modulo Symmetries (SMS) framework for integrating with CaDiCaL
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{IPASIR-UP: Callback Functions}
+  \textbf{Notification:}
+  \begin{itemize}
+    \item \code{notify_assignment}: New assignments on current decision level
+    \item \code{notify_new_decision_level}: Entering a new decision level
+    \item \code{notify_backtrack}: Backtracking to a previous level
+  \end{itemize}
+  \textbf{Propagation and Clauses:}
+  \begin{itemize}
+    \item \code{cb_propagate}: Externally propagated literal
+    \item \code{cb_add_reason_clause_lit}: Reason clause for propagated literal
+    \item \code{cb_has_external_clause}: Check if external clause is available
+    \item \code{cb_add_external_clause_lit}: Get literals of the external clause
+  \end{itemize}
+  \textbf{Decision and Model:}
+  \begin{itemize}
+    \item \code{cb_decide}: Next decision literal from user
+    \item \code{cb_check_found_model}: User checks found model
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{IPASIR-UP: Configuration Functions}
+  \begin{itemize}
+    \item \code{connect_user_propagator}, \code{disconnect_user_propagator}: Connect/disconnect user propagator
+    \item \code{add_observed_var}, \code{remove_observed_var}: Add/remove observed variables (for assignment notification)
+    \item \code{is_decision}: Check if a variable is a decision variable
+    \item \code{phase}, \code{unphase}: Set/clear phase of a variable (decision guidance)
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{SMT Solvers and cvc5}
+  \begin{itemize}
+    \item SMT: Satisfiability Modulo Theories (integers, arrays, bit-vectors, etc.)
+    \item SMT solvers (e.g., z3, cvc5) use SAT solvers for Boolean abstraction
+    \item cvc5: open-source, supports many theories, integrates MiniSat and CaDiCaL
+    \item cvc5 uses CDCL SAT engines in cooperation with theory solvers
+    \item Recent cvc5 versions support CaDiCaL with IPASIR-UP for flexible integration
+  \end{itemize}
+\end{frame}
+
 
 \section{Implementation}
 
@@ -77,9 +155,47 @@
 
 \begin{frame}{Clause Addition During Solving}
   \begin{itemize}
-    \item Added support for clause addition during solving (not just before)
-    \item Handles all possible cases: skip, UNSAT, unit propagation, clause addition
-    \item Maintains 2-watching scheme invariants
+    \item Challenge: Adding clauses during solving (not just before) can affect assignments at different decision levels
+    \item Key: Maintain 2-watching invariant for efficient propagation and backtracking
+    \item Solution: Sort clause literals by assignment status and level before adding
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{2-Watching Invariant and Sorting}
+  \begin{itemize}
+    \item Invariant:
+    \begin{itemize}
+      \item At decision level $l > 0$: a propagating clause is watched by a true and a false literal (both at level $l$); a conflict clause is watched by two false literals (both at level $l$)
+      \item After backtracking to a lower level: the same two literals are now both unassigned, so the clause remains correctly watched
+    \end{itemize}
+    \item Sorting predicate:
+    \begin{itemize}
+      \item Order: true (low to high level), unassigned, false (high to low level)
+      \item Ensures correct watching after backtracking
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Cases When Adding a Clause}
+  \begin{itemize}
+    \item After simplification, possible cases:
+    \begin{itemize}
+      \item Clause skipped (true literal or tautology)
+      \item Clause is empty (UNSAT)
+      \item Unit clause (propagate at root level)
+      \item Clause added and watched by first two literals
+    \end{itemize}
+    \item For two-watched literals, main cases:
+    \begin{itemize}
+      \item false, false:
+        \begin{itemize}
+          \item If levels equal: real conflict, backtrack and analyze
+          \item If levels differ: not a real conflict, backtrack and propagate at lower level
+        \end{itemize}
+      \item unassigned, false: propagation
+      \item true, false: may need propagation if levels differ
+      \item Others: no immediate action
+    \end{itemize}
   \end{itemize}
 \end{frame}
 
@@ -124,6 +240,7 @@
     \caption{Architecture of cvc5 with MiniSat and CaDiCaL}
   \end{figure}
 \end{frame}
+
 
 \section{Experiments}
 
@@ -209,7 +326,7 @@
   \begin{itemize}
     \item Benchmarks: QF\_LRA from SMT-LIB
     \item Compared cvc5 with MiniSatUP, MiniSat, CaDiCaL
-    \item Also tested MiniSatUP with chronological backtracking
+    \item Also tested MiniSatUP with chronological backtracking (MiniSatUP-Chrono)
     \item No discrepancies except timeouts
   \end{itemize}
 \end{frame}
@@ -240,7 +357,9 @@
   \end{figure}
 \end{frame}
 
+
 \section{Summary and Future Work}
+
 \begin{frame}{Summary}
   \begin{itemize}
     \item MiniSatUP: MiniSat extended with the IPASIR-UP interface
@@ -253,7 +372,7 @@
 
 \begin{frame}{Future Work}
   \begin{itemize}
-    \item Investigate remaining failed and timeout cases in cvc5 integration
+    \item Investigate remaining timeout cases in cvc5 integration
     \item Extend IPASIR-UP to support CaDiCaL-specific functions (termination, learned clause/fixed variable notification, resolution proof)
     \item Further abstract and simplify the SAT solver interface in cvc5 with IPASIR-UP
     \item Support proof validation in IDRUP format for MiniSatUP
@@ -261,10 +380,11 @@
   \end{itemize}
 \end{frame}
 
-\begin{frame}[allowframebreaks]{References}
+
+\begin{frame}[t,allowframebreaks]{References}
   \scriptsize
   \nocite{*}
-  \bibliographystyle{abbrv}
+  \bibliographystyle{amsalpha}
   \bibliography{bibliography}
 \end{frame}
 
