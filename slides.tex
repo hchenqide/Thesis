@@ -11,12 +11,10 @@
 \svgsetup{inkscapepath=build/svg-inkscape/}
 \graphicspath{{figure/}}
 
-
-\title[MiniSatUP and its Integration with cvc5]{From MiniSat to MiniSatUP and its Integration with cvc5 via IPASIR-UP}
+\title[MiniSatUP and its Integration with cvc5]{From MiniSat to MiniSatUP and its Integration \\ with cvc5 via IPASIR-UP}
 \author{Chenqi Hao}
 \institute{University of Freiburg}
 \date{\today}
-
 
 \begin{document}
 
@@ -37,18 +35,16 @@
   \tableofcontents
 \end{frame}
 
-
 \section{Introduction}
 
 \begin{frame}{Introduction}
   \begin{itemize}
-    \item SAT solvers: key role in verification, model checking, and constraint solving
+    \item SAT solvers: key role in verification, model checking, and constraint solving, etc.
     \item Modern applications require incremental and interactive SAT solving
-    \item IPASIR-UP enables tighter integration between SAT solvers and applications
-    \item This thesis: MiniSatUP (IPASIR-UP for MiniSat) and its integration with SMT solver cvc5
+    \item As an extension to IPASIR, IPASIR-UP interface enables tighter integration between SAT solvers and applications
+    \item This thesis: MiniSatUP (MiniSat with IPASIR-UP) and its integration with SMT solver cvc5
   \end{itemize}
 \end{frame}
-
 
 \section{Background and Related Work}
 
@@ -64,12 +60,17 @@
 \begin{frame}{SAT Solvers: CNF, Incremental, CDCL}
   \begin{itemize}
     \item Input: formulas in Conjunctive Normal Form (CNF)
+      \begin{itemize}
+        \item CNF formula: a conjunction (AND) of clauses
+        \item Clause: a disjunction (OR) of literals
+        \item Literal: a Boolean variable or its negation
+      \end{itemize}
     \item Incremental solving: add clauses/assumptions over time, retain learned info
     \item CDCL (Conflict-Driven Clause Learning):
-    \begin{itemize}
-      \item Assign literals, propagate, analyze conflicts, learn clauses, backtrack
-      \item Enables efficient incremental solving
-    \end{itemize}
+      \begin{itemize}
+        \item Assign literals, propagate, analyze conflicts, learn clauses, backtrack
+        \item Enables efficient incremental solving
+      \end{itemize}
   \end{itemize}
 \end{frame}
 
@@ -127,19 +128,29 @@
 \begin{frame}{SMT Solvers and cvc5}
   \begin{itemize}
     \item SMT: Satisfiability Modulo Theories (integers, arrays, bit-vectors, etc.)
-    \item SMT solvers (e.g., z3, cvc5) use SAT solvers for Boolean abstraction
-    \item cvc5: open-source, supports many theories, integrates MiniSat and CaDiCaL
-    \item cvc5 uses CDCL SAT engines in cooperation with theory solvers
-    \item Recent cvc5 versions support CaDiCaL with IPASIR-UP for flexible integration
+    \item SMT solvers (e.g., z3, cvc5) use SAT solvers for Boolean abstraction in cooperation with theory solvers
+    \item cvc5: open-source, supports many theories, integrates CaDiCaL (via IPASIR-UP) and MiniSat
   \end{itemize}
 \end{frame}
 
+\begin{frame}{cvc5 Architecture}
+  \begin{figure}
+    \centering
+    \includesvg[width=0.5\linewidth]{cvc5.svg}
+    \caption{Architecture of cvc5 with MiniSat and CaDiCaL}
+  \end{figure}
+\end{frame}
 
 \section{Implementation}
 
-\begin{frame}{Implementation Overview}
+\begin{frame}{MiniSatUP Implementation Overview}
   \begin{itemize}
     \item MiniSat extended with IPASIR-UP interface in several steps
+      \begin{itemize}
+        \item Adding IPASIR-UP interface class
+        \item Supporting adding a clause during solving
+        \item Supporting external propagation and adding reason clause lazily
+      \end{itemize}
     \item Minimal changes to core CDCL loop
     \item Focus on maintainability and compatibility
   \end{itemize}
@@ -153,52 +164,6 @@
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Clause Addition During Solving}
-  \begin{itemize}
-    \item Challenge: Adding clauses during solving (not just before) can affect assignments at different decision levels
-    \item Key: Maintain 2-watching invariant for efficient propagation and backtracking
-    \item Solution: Sort clause literals by assignment status and level before adding
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{2-Watching Invariant and Sorting}
-  \begin{itemize}
-    \item Invariant:
-    \begin{itemize}
-      \item At decision level $l > 0$: a propagating clause is watched by a true and a false literal (both at level $l$); a conflict clause is watched by two false literals (both at level $l$)
-      \item After backtracking to a lower level: the same two literals are now both unassigned, so the clause remains correctly watched
-    \end{itemize}
-    \item Sorting predicate:
-    \begin{itemize}
-      \item Order: true (low to high level), unassigned, false (high to low level)
-      \item Ensures correct watching after backtracking
-    \end{itemize}
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Cases When Adding a Clause}
-  \begin{itemize}
-    \item After simplification, possible cases:
-    \begin{itemize}
-      \item Clause skipped (true literal or tautology)
-      \item Clause is empty (UNSAT)
-      \item Unit clause (propagate at root level)
-      \item Clause added and watched by first two literals
-    \end{itemize}
-    \item For two-watched literals, main cases:
-    \begin{itemize}
-      \item false, false:
-        \begin{itemize}
-          \item If levels equal: real conflict, backtrack and analyze
-          \item If levels differ: not a real conflict, backtrack and propagate at lower level
-        \end{itemize}
-      \item unassigned, false: propagation
-      \item true, false: may need propagation if levels differ
-      \item Others: no immediate action
-    \end{itemize}
-  \end{itemize}
-\end{frame}
-
 \begin{frame}{CDCL Loop Update}
   \begin{figure}
     \centering
@@ -207,12 +172,64 @@
   \end{figure}
 \end{frame}
 
+\begin{frame}{Clause Addition During Solving}
+  \begin{itemize}
+    \item Challenge: A clause added during solving (not just before) might contain literals assigned at different decision levels
+    \item Key: Maintain 2-watching scheme for correct and efficient propagation
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{2-Watching Invariant and Sorting}
+  \begin{itemize}
+    \item Invariant:
+      \begin{itemize}
+        \item At decision level $l > 0$: a propagating clause is watched by a true and a false literal (both at level $l$); a conflict clause is watched by two false literals (both at level $l$)
+        \item After backtracking to a lower level: the same two literals are now both unassigned, so the clause remains correctly watched
+      \end{itemize}
+    \item Sorting predicate:
+      \begin{itemize}
+        \item Order: true (low to high level), unassigned, false (high to low level)
+        \item Ensures correct watching after backtracking
+      \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Cases When Adding a Clause}
+  \begin{itemize}
+    \item After simplification, possible cases:
+      \begin{itemize}
+        \item Clause skipped (true literal or tautology)
+        \item Clause is empty (UNSAT)
+        \item Unit clause (propagate at root level)
+        \item Clause added and watched by first two literals after sorting
+      \end{itemize}
+    \item For two-watched literals, main cases:
+      \begin{itemize}
+        \item false, false:
+          \begin{itemize}
+            \item If levels equal: real conflict, backtrack and analyze
+            \item If levels differ: not a real conflict, backtrack and propagate at lower level
+          \end{itemize}
+        \item unassigned, false: propagation
+        \item true, false: may need propagation if levels differ
+        \item Others: no further action (add a next clause or go to decision)
+      \end{itemize}
+  \end{itemize}
+\end{frame}
+
 \begin{frame}{External Propagation and Lazy Explanation}
   \begin{itemize}
-    \item Supported external propagation and lazy explanation of propagated literals
     \item Callback \code{cb_propagate} for external propagation
-    \item Reason clauses requested only when needed
+    \item Reason clauses requested and added only when needed during conflict analysis
+      \begin{itemize}
+        \item The reason clause is sorted and watched the same way
+        \item Backtracking and propagation might happen as well
+      \end{itemize}
     \item Exception mechanism for backtracking during conflict analysis
+      \begin{itemize}
+        \item Throw a C++ exception to break from conflict analysis and go to the next propagation
+        \item Clear the analysis context after catching the exception
+      \end{itemize}
   \end{itemize}
 \end{frame}
 
@@ -226,27 +243,17 @@
 
 \begin{frame}{Integration with cvc5}
   \begin{itemize}
-    \item Based on cvc5's existing CaDiCaL integration
-    \item Adapted interface and implemented required functions
-    \item Added support for CaDiCaL-specific features (termination, listeners, learners)
+    \item Based on cvc5's existing CaDiCaL integration via IPASIR-UP
+    \item Added support for IPASIR and CaDiCaL-specific functions (terminator, fixed assignment listener, clause learner)
     \item CMake integration for easy linking and selection
   \end{itemize}
 \end{frame}
-
-\begin{frame}{cvc5 Architecture}
-  \begin{figure}
-    \centering
-    \includesvg[width=0.5\linewidth]{cvc5.svg}
-    \caption{Architecture of cvc5 with MiniSat and CaDiCaL}
-  \end{figure}
-\end{frame}
-
 
 \section{Experiments}
 
 \begin{frame}{Correctness Testing}
   \begin{itemize}
-    \item Fuzzer for IPASIR-UP interface: random CNF, clause addition, propagation
+    \item Fuzzer for IPASIR-UP interface
     \item Regression tests with cvc5
     \item Bug discovery and fixing during development
   \end{itemize}
@@ -258,40 +265,6 @@
     \includesvg[width=0.6\linewidth]{fuzzer.svg}
     \caption{Fuzzing workflow}
   \end{figure}
-\end{frame}
-
-\begin{frame}{Fuzzing Statistics}
-  \scriptsize
-  \begin{table}
-    \centering
-    \begin{tabular}{|l|c|c|c|}
-      \hline
-      & \multicolumn{3}{c|}{\textbf{input CNF with random seeds}} \\
-      \cline{2-4}
-      \textbf{cases adding external clause} & \textbf{675958302} & \textbf{872113057} & \textbf{367451228} \\
-      \hline
-      unsat & 0 & 1 & 0 \\
-      skipped & 57 & 0 & 34 \\
-      unit & 2 & 5 & 4 \\
-      two watching literals & 3502 & 4009 & 1828 \\
-      \quad false, false & 6 & 6 & 4 \\
-      \quad\quad conflict & 1 & 0 & 2 \\
-      \quad\quad propagation & 5 & 6 & 2 \\
-      \quad unassigned, false & 39 & 77 & 25 \\
-      \quad unassigned, unassigned & 2483 & 2666 & 1229 \\
-      \quad true, false & 16 & 19 & 17 \\
-      \quad\quad propagation & 6 & 7 & 8 \\
-      \quad\quad no propagation & 10 & 12 & 9 \\
-      \quad true, unassigned & 636 & 826 & 364 \\
-      \quad true, true & 322 & 415 & 189 \\
-      \hline
-      \textbf{result} & SAT & UNSAT & UNSAT \\
-      \textbf{number of variables} & 513 & 591 & 247 \\
-      \textbf{number of clauses} & 3956 & 4629 & 2699 \\
-      \hline
-    \end{tabular}
-    \caption{Statistics of cases hit adding external clause with different samples}
-  \end{table}
 \end{frame}
 
 \begin{frame}{Bug Summary}
@@ -357,7 +330,6 @@
   \end{figure}
 \end{frame}
 
-
 \section{Summary and Future Work}
 
 \begin{frame}{Summary}
@@ -379,7 +351,6 @@
     \item Further develop and optimize MiniSatUP with chronological backtracking
   \end{itemize}
 \end{frame}
-
 
 \begin{frame}[t,allowframebreaks]{References}
   \scriptsize
